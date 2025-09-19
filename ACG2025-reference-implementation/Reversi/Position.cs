@@ -32,7 +32,7 @@ internal struct Position
     public readonly int WhiteDiscCount => _sideToMove == DiscColor.White ? PlayerDiscCount : OpponentDiscCount;
     public readonly int DiscCount => _bitboard.DiscCount;
     public readonly int DiscDiff => PlayerDiscCount - OpponentDiscCount;
-    public int EmptyCellsCount { readonly get; private set; }
+    public int EmptyCellCount { readonly get; private set; }
     public readonly bool CanPass => _bitboard.CalcPlayerMobility() == 0UL && _bitboard.CalcOpponentMobility() != 0UL;
     public readonly bool IsGameOver => _bitboard.CalcPlayerMobility() == 0UL && _bitboard.CalcOpponentMobility() == 0UL;
 
@@ -45,13 +45,13 @@ internal struct Position
                                  1UL << (int)BoardCoordinate.D4 | 1UL << (int)BoardCoordinate.E5);
         _sideToMove = DiscColor.Black;
         OpponentColor = DiscColor.White;
-        EmptyCellsCount = _bitboard.EmptyCellsCount;
+        EmptyCellCount = _bitboard.EmptyCellsCount;
     }
 
     public Position(Bitboard bitboard, DiscColor sideToMove) => Init(bitboard, sideToMove);
 
     public readonly Bitboard GetBitboard() => _bitboard;
-    public void SetBitboard(Bitboard bitboard) { _bitboard = bitboard; EmptyCellsCount = _bitboard.EmptyCellsCount; }
+    public void SetBitboard(Bitboard bitboard) { _bitboard = bitboard; EmptyCellCount = _bitboard.EmptyCellsCount; }
     public readonly bool Has(ref Bitboard bitboard) => _bitboard == bitboard;
 
     public void Init(Bitboard bitboard, DiscColor sideToMove)
@@ -59,7 +59,7 @@ internal struct Position
         _bitboard = bitboard;
         _sideToMove = sideToMove;
         OpponentColor = Utils.ToOpponentColor(sideToMove);
-        EmptyCellsCount = _bitboard.EmptyCellsCount;
+        EmptyCellCount = _bitboard.EmptyCellsCount;
     }
 
     public static bool operator ==(Position left, Position right)
@@ -110,13 +110,13 @@ internal struct Position
     public void PutPlayerDiscAt(BoardCoordinate coord)
     {
         _bitboard.PutPlayerDiscAt(coord);
-        EmptyCellsCount = _bitboard.EmptyCellsCount;
+        EmptyCellCount = _bitboard.EmptyCellsCount;
     }
 
     public void PutOpponentDiscAt(BoardCoordinate coord)
     {
         _bitboard.PutOpponentDiscAt(coord);
-        EmptyCellsCount = _bitboard.EmptyCellsCount;
+        EmptyCellCount = _bitboard.EmptyCellsCount;
     }
 
     public void PutDisc(DiscColor color, BoardCoordinate coord)
@@ -133,7 +133,7 @@ internal struct Position
     public void RemoveDiscAt(BoardCoordinate coord)
     {
         _bitboard.RemoveDiscAt(coord);
-        EmptyCellsCount = _bitboard.EmptyCellsCount;
+        EmptyCellCount = _bitboard.EmptyCellsCount;
     }
 
     public void RemoveAllDiscs()
@@ -154,7 +154,7 @@ internal struct Position
     {
         (_sideToMove, OpponentColor) = (OpponentColor, _sideToMove);
         _bitboard.Update(move.Coord, move.Flip);
-        EmptyCellsCount--;
+        EmptyCellCount--;
     }
 
     /// <summary>
@@ -192,7 +192,7 @@ internal struct Position
     {
         (_sideToMove, OpponentColor) = (OpponentColor, _sideToMove);
         _bitboard.Undo(move.Coord, move.Flip);
-        EmptyCellsCount++;
+        EmptyCellCount++;
     }
 
     /// <summary>

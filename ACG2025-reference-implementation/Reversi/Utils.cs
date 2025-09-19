@@ -126,6 +126,9 @@ internal static class Utils
             }
     }
 
+    public static ReadOnlySpan<BoardCoordinate> GetAdjacent4Cells(BoardCoordinate coord) => Adjacent4Cells[(int)coord];
+    public static ReadOnlySpan<BoardCoordinate> GetAdjacent8Cells(BoardCoordinate coord) => Adjacent8Cells[(int)coord];
+
     public static (int x, int y) Coordinate1DTo2D(BoardCoordinate coord) => ((int)coord % BoardSize, (int)coord / BoardSize);
 
     public static BoardCoordinate Coordinate2DTo1D(int x, int y)
@@ -171,5 +174,4 @@ internal static class Utils
     }
 
     public static Player ToOpponentPlayer(Player player) => player ^ Player.Second;
-
 }

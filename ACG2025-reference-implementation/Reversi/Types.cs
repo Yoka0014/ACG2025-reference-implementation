@@ -26,3 +26,8 @@ internal enum Player
     Second,
     Null
 }
+
+internal interface IDiscColor { }
+
+internal struct Black : IDiscColor { }
+internal struct White : IDiscColor { }
