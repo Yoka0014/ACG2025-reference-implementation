@@ -24,12 +24,12 @@ internal class GreedyEngine(string valueFuncWeightsPath) : Engine("GreedyEngine"
     /// Path to the value function weights file
     /// </summary>
     readonly string _valueFuncWeightsPath = valueFuncWeightsPath;
-    
+
     /// <summary>
     /// Game state management object containing position and feature vector
     /// </summary>
     State _state;
-    
+
     /// <summary>
     /// Value function object for win rate prediction
     /// </summary>
@@ -94,7 +94,7 @@ internal class GreedyEngine(string valueFuncWeightsPath) : Engine("GreedyEngine"
         }
 
         var multiPV = CreateMultiPV();
-        if(multiPV is not null)
+        if (multiPV is not null)
             SendMultiPV(multiPV.OrderByDescending(x => x.EvalScore).ToList()[..Math.Min(numHints, multiPV.Count)]);
     }
 
@@ -191,4 +191,9 @@ internal class GreedyEngine(string valueFuncWeightsPath) : Engine("GreedyEngine"
 
         return multiPV;
     }
+
+    public override void SetMainTime(DiscColor color, int mainTimeMs) { }
+    public override void SetByoyomi(DiscColor color, int byoyomiMs) { }
+    public override void SetByoyomiStones(DiscColor color, int byoyomiStones) { }
+    public override void SetTimeIncrement(DiscColor color, int incMs) { }
 }

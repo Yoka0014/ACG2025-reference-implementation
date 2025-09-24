@@ -33,7 +33,7 @@ internal enum EvalScoreType
 internal class ThinkInfo(IEnumerable<BoardCoordinate> pv)
 {
     /// <summary>Elapsed time in milliseconds</summary>
-    public int? ElpasedMs { get; init; }
+    public int? ElapsedMs { get; init; }
     /// <summary>Number of nodes searched</summary>
     public ulong? NodeCount { get; init; }
     /// <summary>Nodes per second</summary>
@@ -171,7 +171,7 @@ internal abstract class Engine(string name, string version, string author)
     /// <summary>
     /// Initializes the engine and prepares it for use.
     /// </summary>
-    public void Ready() => OnReady();
+    public bool Ready() => OnReady();
 
     /// <summary>
     /// Initializes the position to the specified state and clears move history.
@@ -234,14 +234,50 @@ internal abstract class Engine(string name, string version, string author)
 
     /// <summary>Terminates the engine and cleans up resources</summary>
     public abstract void Quit();
+
+    /// <summary>
+    /// Sets the main thinking time for the specified player color.
+    /// This is the initial time available before entering byoyomi phase.
+    /// </summary>
+    /// <param name="color">The player color to set main time for</param>
+    /// <param name="mainTimeMs">Main time in milliseconds</param>
+    public abstract void SetMainTime(DiscColor color, int mainTimeMs);
+    
+    /// <summary>
+    /// Sets the byoyomi time for the specified player color.
+    /// This is the time limit for making moves after main time is exhausted.
+    /// </summary>
+    /// <param name="color">The player color to set byoyomi time for</param>
+    /// <param name="byoyomiMs">Byoyomi time in milliseconds</param>
+    public abstract void SetByoyomi(DiscColor color, int byoyomiMs);
+    
+    /// <summary>
+    /// Sets the number of stones (moves) that must be played within byoyomi time.
+    /// Used in Canadian time system where multiple moves must be made in the byoyomi period.
+    /// </summary>
+    /// <param name="color">The player color to set byoyomi stones for</param>
+    /// <param name="byoyomiStones">Number of moves to be made within byoyomi time</param>
+    public abstract void SetByoyomiStones(DiscColor color, int byoyomiStones);
+    
+    /// <summary>
+    /// Sets the time increment added after each move (Fischer time system).
+    /// Time is added to the player's clock after making each move.
+    /// </summary>
+    /// <param name="color">The player color to set time increment for</param>
+    /// <param name="incMs">Time increment in milliseconds</param>
+    public abstract void SetTimeIncrement(DiscColor color, int incMs);
+
     /// <summary>Sets the engine's thinking level or strength</summary>
     /// <param name="level">Level to set</param>
     public abstract void SetLevel(int level);
+
     /// <summary>Starts thinking and makes a move</summary>
     public abstract void Go();
+
     /// <summary>Analyzes the position and provides multiple candidate moves</summary>
     /// <param name="numMoves">Number of candidate moves to analyze</param>
     public abstract void Analyze(int numMoves);
+
     /// <summary>Stops the engine's thinking process</summary>
     /// <param name="timeoutMs">Maximum time to wait for stop in milliseconds</param>
     /// <returns>True if thinking was stopped successfully</returns>

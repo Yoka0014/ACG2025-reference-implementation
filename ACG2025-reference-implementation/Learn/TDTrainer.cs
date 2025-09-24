@@ -10,11 +10,11 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
 
+using ACG2025_reference_implementation.Utils;
 using ACG2025_reference_implementation.Reversi;
 using ACG2025_reference_implementation.NTupleSystem;
 using ACG2025_reference_implementation.Evaluation;
 using ACG2025_reference_implementation.Search;
-using ACG2025_reference_implementation.Utils;
 
 /// <summary>
 /// Configuration parameters for temporal difference learning.
