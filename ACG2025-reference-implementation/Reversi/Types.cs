@@ -27,6 +27,14 @@ internal enum Player
     Null
 }
 
+internal enum GameResult : int
+{
+    Win = 1,
+    Loss = -1,
+    Draw = 0,
+    NotOver = -2
+}
+
 internal interface IDiscColor { }
 
 internal struct Black : IDiscColor { }

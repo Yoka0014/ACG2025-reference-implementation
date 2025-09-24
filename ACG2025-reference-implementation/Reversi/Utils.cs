@@ -174,4 +174,11 @@ internal static class Utils
     }
 
     public static Player ToOpponentPlayer(Player player) => player ^ Player.Second;
+
+    public static GameResult ToOpponentGameResult(GameResult res)
+    {
+        if (res == GameResult.NotOver)
+            return res;
+        return (GameResult)(-(int)res);
+    }
 }

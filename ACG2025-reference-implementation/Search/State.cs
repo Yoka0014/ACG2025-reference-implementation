@@ -21,6 +21,12 @@ internal struct State
         FeatureVector.Init(ref pos);
     }
 
+    public void Init(ref Position pos)
+    {
+        Position = pos;
+        FeatureVector.Init(ref pos);
+    }
+
     public readonly void CopyTo(ref State dest)
     {
         dest.Position = Position;

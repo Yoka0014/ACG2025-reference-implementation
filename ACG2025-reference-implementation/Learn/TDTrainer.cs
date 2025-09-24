@@ -165,7 +165,7 @@ internal class TDTrainer<WeightType> where WeightType : unmanaged, IFloatingPoin
         _biasDiffSum = new WeightType[valueFunc.NumPhases];
         _biasAbsDiffSum = new WeightType[valueFunc.NumPhases];
         _tclFactor = WeightType.CreateChecked(_config.TCLFactor);
-        var capacity = int.CreateChecked(Math.Log(config.HorizonCutFactor, config.EligibilityTraceFactor)) + 1;
+        var capacity = (int)Math.Ceiling(Math.Log(config.HorizonCutFactor, config.EligibilityTraceFactor)) + 1;
         _pastStatesBuffer = new PastStatesBuffer(capacity, valueFunc.NTupleManager);
 
         _rand = (randSeed >= 0) ? new Random(randSeed) : new Random(Random.Shared.Next());
@@ -325,6 +325,8 @@ internal class TDTrainer<WeightType> where WeightType : unmanaged, IFloatingPoin
                 continue;
             }
 
+            afterPass = false;
+
             WeightType nextV;
             if (moveCount < _config.NumInitialRandomMoves || _rand.NextDouble() < explorationRate)   // random move
             {
@@ -376,7 +378,6 @@ internal class TDTrainer<WeightType> where WeightType : unmanaged, IFloatingPoin
         var gamma = WeightType.CreateChecked(_config.DiscountRate);
         var lambda = WeightType.CreateChecked(_config.EligibilityTraceFactor);
         var alpha = WeightType.CreateChecked(_config.LearningRate);
-        var beta = WeightType.CreateChecked(_config.TCLFactor);
         var eligibilityFactor = WeightType.One;
 
         fixed (WeightType* weights = _valueFunc.Weights)
@@ -394,9 +395,9 @@ internal class TDTrainer<WeightType> where WeightType : unmanaged, IFloatingPoin
 
                 var delta = eligibilityFactor * tdError;
                 if (posFeatureVec.SideToMove == DiscColor.Black)
-                    ApplyGradients<Black>(phase, posFeatureVec, weights, weightDiffSum, weightAbsDiffSum, alpha, beta, delta);
+                    ApplyGradients<Black>(phase, posFeatureVec, weights, weightDiffSum, weightAbsDiffSum, alpha, delta);
                 else
-                    ApplyGradients<White>(phase, posFeatureVec, weights, weightDiffSum, weightAbsDiffSum, alpha, beta, delta);
+                    ApplyGradients<White>(phase, posFeatureVec, weights, weightDiffSum, weightAbsDiffSum, alpha, delta);
 
                 var reg = WeightType.One / WeightType.CreateChecked(posFeatureVec.NumNTuples + 1);
                 var lr = reg * alpha * Decay(WeightType.Abs(biasDiffSum[phase]) / biasAbsDiffSum[phase]);
@@ -406,7 +407,7 @@ internal class TDTrainer<WeightType> where WeightType : unmanaged, IFloatingPoin
                 biasAbsDiffSum[phase] += WeightType.Abs(db);
 
                 eligibilityFactor *= gamma * lambda;
-                tdError = lambda - WeightType.One - tdError;  // inverse tdError: lambda * (1.0 - nextV) - (1.0 - v)
+                tdError = gamma - WeightType.One - tdError;  // inverse tdError: gamma * (1.0 - nextV) - (1.0 - v)
             }
         }
     }
@@ -422,10 +423,9 @@ internal class TDTrainer<WeightType> where WeightType : unmanaged, IFloatingPoin
     /// <param name="weightDeltaSum">Pointer to cumulative weight changes</param>
     /// <param name="weightDeltaAbsSum">Pointer to cumulative absolute weight changes</param>
     /// <param name="alpha">Base learning rate</param>
-    /// <param name="beta">TCL factor for adaptive learning rate</param>
     /// <param name="delta">Weight update delta value</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    unsafe void ApplyGradients<DiscColor>(int phase, FeatureVector featureVec, WeightType* weights, WeightType* weightDeltaSum, WeightType* weightDeltaAbsSum, WeightType alpha, WeightType beta, WeightType delta) where DiscColor : IDiscColor
+    unsafe void ApplyGradients<DiscColor>(int phase, FeatureVector featureVec, WeightType* weights, WeightType* weightDeltaSum, WeightType* weightDeltaAbsSum, WeightType alpha, WeightType delta) where DiscColor : IDiscColor
     {
         for (var i = 0; i < featureVec.Features.Length; i++)
         {
@@ -507,7 +507,11 @@ internal class TDTrainer<WeightType> where WeightType : unmanaged, IFloatingPoin
         /// <summary>
         /// Clears the buffer by resetting the location pointer.
         /// </summary>
-        public void Clear() => _loc = 0;
+        public void Clear()
+        {
+            _loc = 0;
+            Count = 0;
+        }
 
         /// <summary>
         /// Adds a new feature vector to the buffer, overwriting the oldest entry if at capacity.
