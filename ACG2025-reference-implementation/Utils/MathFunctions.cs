@@ -6,4 +6,8 @@ internal static class MathFunctions
 {
     public static T Round<T>(T x) where T : struct, IFloatingPointIeee754<T> => T.Floor(x + T.One / (T.One + T.One));
     public static T StdSigmoid<T>(T x) where T : struct, IFloatingPointIeee754<T> => T.One / (T.One + T.Exp(-x));
+
+    public static T BinaryCrossEntropy<T>(T y, T t) where T : struct, IFloatingPointIeee754<T>
+        => -(t * T.Log(y + T.Epsilon)
+        + (T.One - t) * T.Log(T.One - y + T.Epsilon));
 }

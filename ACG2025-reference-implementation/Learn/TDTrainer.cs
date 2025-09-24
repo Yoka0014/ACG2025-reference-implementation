@@ -399,8 +399,7 @@ internal class TDTrainer<WeightType> where WeightType : unmanaged, IFloatingPoin
                 else
                     ApplyGradients<White>(phase, posFeatureVec, weights, weightDiffSum, weightAbsDiffSum, alpha, delta);
 
-                var reg = WeightType.One / WeightType.CreateChecked(posFeatureVec.NumNTuples + 1);
-                var lr = reg * alpha * Decay(WeightType.Abs(biasDiffSum[phase]) / biasAbsDiffSum[phase]);
+                var lr = alpha * Decay(WeightType.Abs(biasDiffSum[phase]) / biasAbsDiffSum[phase]);
                 var db = lr * delta;
                 bias[phase] += db;
                 biasDiffSum[phase] += db;
@@ -438,28 +437,25 @@ internal class TDTrainer<WeightType> where WeightType : unmanaged, IFloatingPoin
             fixed (int* opp = featureVec.NTupleManager.GetRawOpponentFeatureTable(i))
             fixed (int* mirror = featureVec.NTupleManager.GetRawMirroredFeatureTable(i))
             {
-                var reg = WeightType.One / WeightType.CreateChecked((featureVec.NumNTuples + 1) * feature.Length);
                 for (var j = 0; j < feature.Length; j++)
                 {
                     var f = (typeof(DiscColor) == typeof(Black)) ? feature[j] : opp[feature[j]];
                     var mf = mirror[f];
 
-                    var lr = reg * alpha * Decay(WeightType.Abs(dwSum[f]) / dwAbsSum[f]);
+                    var lr = alpha * Decay(WeightType.Abs(dwSum[f]) / dwAbsSum[f]);
                     var dw = lr * delta;
                     var absDW = WeightType.Abs(dw);
-
-                    if (mf != f)
-                    {
-                        dw *= WeightType.CreateChecked(0.5);
-                        absDW *= WeightType.CreateChecked(0.5);
-                        w[mf] += dw;
-                        dwSum[mf] += dw;
-                        dwAbsSum[mf] += absDW;
-                    }
 
                     w[f] += dw;
                     dwSum[f] += dw;
                     dwAbsSum[f] += absDW;
+
+                    if (mf != f)
+                    {
+                        w[mf] += dw;
+                        dwSum[mf] += dw;
+                        dwAbsSum[mf] += absDW;
+                    }
                 }
             }
         }

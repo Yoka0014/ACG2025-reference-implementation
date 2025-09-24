@@ -214,7 +214,7 @@ internal class ValueFunctionForTrain<WeightType> where WeightType : unmanaged, I
     /// <param name="phase">The game phase</param>
     /// <returns>A span of weights for the specified color and phase</returns>
     public Span<WeightType> GetWeights(DiscColor color, int phase)
-        => Weights.AsSpan(_discColorOffset[(int)color])[PhaseOffset[phase]..PhaseOffset[1]];
+        => Weights.AsSpan(_discColorOffset[(int)color])[PhaseOffset[phase]..PhaseOffset[phase + 1]];
 
     /// <summary>
     /// Copies weights from black to white by applying opponent feature transformation.

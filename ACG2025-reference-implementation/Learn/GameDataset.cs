@@ -1,4 +1,4 @@
-global using GameDataset = System.Collections.Generic.List<ACG2025_reference_implementation.Learn.GameDatasetItem>;
+global using GameDataset = ACG2025_reference_implementation.Learn.GameDatasetItem[];
 
 namespace ACG2025_reference_implementation.Learn;
 
