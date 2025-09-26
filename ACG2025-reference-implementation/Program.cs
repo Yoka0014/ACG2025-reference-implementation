@@ -1,6 +1,9 @@
 ﻿using System;
+using ACG2025_reference_implementation.Engines;
 using ACG2025_reference_implementation.Evaluation;
 using ACG2025_reference_implementation.Learn;
+using ACG2025_reference_implementation.Protocols;
+using ACG2025_reference_implementation.Reversi;
 
 namespace ACG2025_reference_implementation
 {
@@ -8,10 +11,7 @@ namespace ACG2025_reference_implementation
     {
         static void Main(string[] args)
         {
-            var valueFunc = ValueFunctionForTrain<float>.LoadFromFile(args[0]);
-            valueFunc = new ValueFunctionForTrain<float>(valueFunc.NTupleManager, 60);
-            var tdTrainer = new TDTrainer<float>("TestAgent", valueFunc, new TDTrainerConfig());
-            tdTrainer.Train();
+            
         }
     }
 }

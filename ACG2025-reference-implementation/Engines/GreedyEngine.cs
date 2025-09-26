@@ -147,13 +147,25 @@ internal class GreedyEngine(string valueFuncWeightsPath) : Engine("GreedyEngine"
     /// Performs state update processing when a move is made.
     /// </summary>
     /// <param name="move">Information about the move that was made</param>
-    protected override void OnUpdatedPosition(Move move) => _state.Update(ref move);
+    protected override void OnUpdatedPosition(Move move)
+    {
+        if(move.Coord != BoardCoordinate.Pass)
+            _state.Update(ref move);
+        else
+            _state.Pass();
+    }
 
     /// <summary>
     /// Performs state restoration processing when a move is undone.
     /// </summary>
     /// <param name="move">Information about the move to undo</param>
-    protected override void OnUndonePosition(Move move) => _state.Undo(ref move);
+    protected override void OnUndonePosition(Move move)
+    {
+        if (move.Coord != BoardCoordinate.Pass)
+            _state.Undo(ref move);
+        else
+            _state.Pass();
+    }
 
     /// <summary>
     /// Evaluates all legal moves and creates a MultiPV.

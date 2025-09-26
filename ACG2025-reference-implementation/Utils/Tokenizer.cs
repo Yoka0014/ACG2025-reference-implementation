@@ -27,7 +27,7 @@ internal class Tokenizer(IEnumerable<char> delimiters)
     /// <summary>
     /// Initializes a new instance of the <see cref="Tokenizer"/> class with default delimiters (space, tab, carriage return, newline).
     /// </summary>
-    public Tokenizer() : this([' ', '\t', 'r', '\n']) { }
+    public Tokenizer() : this([' ', '\t', '\r', '\n']) { }
 
     /// <summary>
     /// Gets or sets the input string to tokenize. Setting this property resets the position to 0.

@@ -314,7 +314,7 @@ internal class TDTrainer<WeightType> where WeightType : unmanaged, IFloatingPoin
             {
                 if (afterPass)
                 {
-                    Adapt((WeightType.One - GetReward(state.Position.DiscDiff)) - v);
+                    Adapt(GetReward(state.Position.DiscDiff) - v);
                     break;
                 }
 

@@ -289,7 +289,7 @@ internal class NBoard : IProtocol
             if (move.EvalScoreType != EvalScoreType.WinRate)
                 sb.Append('/').Append(move.EvalScore.Value);
             else
-                sb.Append('/').Append(move.EvalScore.Value - 50.0);
+                sb.Append('/').Append(move.EvalScore.Value * 100.0 - 50.0);
         }
 
         if (move.ElapsedMs.HasValue)

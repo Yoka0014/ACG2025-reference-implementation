@@ -42,7 +42,7 @@ internal class ValueFunction
     /// <summary>
     /// Output scaling factor used to convert internal values to the final output range.
     /// </summary>
-    public const int OutScale = 3000;
+    public const int OutScale = 600;
     
     /// <summary>
     /// Internal scaling factor used during weight quantization to preserve precision.
@@ -227,7 +227,7 @@ internal class ValueFunction
         }
 
         for (var phase = 0; phase < numPhases; phase++)
-            valueFunc.Bias[phase] = checked((QWeightType)MathFunctions.Round(bias[phase] * OutScale * FVScale));
+            valueFunc.Bias[phase] = (QWeightType)Math.Clamp((int)MathFunctions.Round(bias[phase] * OutScale * FVScale), QWeightType.MinValue, QWeightType.MaxValue);
 
         // expand weights
         valueFunc.Weights = valueFunc.ExpandAndQuantizePackedWeights(packedWeights);
@@ -259,19 +259,19 @@ internal class ValueFunction
     /// Evaluates the position using quantized integer arithmetic for high-speed search operations.
     /// Returns a scaled integer value suitable for alpha-beta search with null window optimizations.
     /// </summary>
-    /// <param name="pfv">The feature vector representing the current position</param>
+    /// <param name="featureVec">The feature vector representing the current position</param>
     /// <returns>An integer evaluation value clamped between ValueMin and ValueMax</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public unsafe int F(FeatureVector pfv)
+    public unsafe int F(FeatureVector featureVec)
     {
         int phase;
         fixed (int* toPhase = EmptySquareCountToPhase)
-            phase = toPhase[pfv.EmptyCellCount];
+            phase = toPhase[featureVec.EmptyCellCount];
 
         var y = 0;
         fixed (int* discColorOffset = this._discColorOffset)
-        fixed (QWeightType* weights = &Weights[this._discColorOffset[(int)pfv.SideToMove] + _phaseOffset[phase]])
-        fixed (Feature* features = pfv.Features)
+        fixed (QWeightType* weights = &Weights[this._discColorOffset[(int)featureVec.SideToMove] + _phaseOffset[phase]])
+        fixed (Feature* features = featureVec.Features)
         {
             for (var nTupleID = 0; nTupleID < _nTupleOffset.Length; nTupleID++)
             {
@@ -293,11 +293,11 @@ internal class ValueFunction
     /// to a logit value and applying the sigmoid function.
     /// </summary>
     /// <typeparam name="T">The floating-point type for the result</typeparam>
-    /// <param name="pfv">The feature vector representing the current position</param>
+    /// <param name="featureVec">The feature vector representing the current position</param>
     /// <returns>A probability value between 0 and 1 representing the win rate</returns>
-    public T PredictWinRate<T>(FeatureVector pfv) where T : struct, IFloatingPointIeee754<T>
+    public T PredictWinRate<T>(FeatureVector featureVec) where T : struct, IFloatingPointIeee754<T>
     {
-        var logit = T.CreateChecked(F(pfv)) / T.CreateChecked(OutScale);
+        var logit = T.CreateChecked(F(featureVec)) / T.CreateChecked(OutScale);
         return MathFunctions.StdSigmoid(logit);
     }
 
@@ -325,7 +325,7 @@ internal class ValueFunction
                 {
                     var mirrored = mirror[feature];
                     if (feature <= mirrored)
-                        qw[feature] = checked((QWeightType)MathFunctions.Round(pw[i++] * OutScale * FVScale));
+                        qw[feature] = (QWeightType)Math.Clamp((int)MathFunctions.Round(pw[i++] * OutScale * FVScale), QWeightType.MinValue, QWeightType.MaxValue);
                     else
                         qw[feature] = qw[mirrored];
                 }
