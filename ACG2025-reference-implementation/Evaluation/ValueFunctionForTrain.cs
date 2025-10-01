@@ -264,8 +264,8 @@ internal class ValueFunctionForTrain<WeightType> where WeightType : unmanaged, I
         Debug.Assert(phase < NumPhases);
 
         var x = WeightType.Zero;
-        fixed (int* discColorOffset = this._discColorOffset)
-        fixed (WeightType* weights = &Weights[this._discColorOffset[(int)featureVector.SideToMove] + _phaseOffset[phase]])
+        fixed (int* discColorOffset = _discColorOffset)
+        fixed (WeightType* weights = &Weights[_discColorOffset[(int)featureVector.SideToMove] + _phaseOffset[phase]])
         fixed (Feature* features = featureVector.Features)
         {
             for (var nTupleID = 0; nTupleID < _nTupleOffset.Length; nTupleID++)
@@ -312,8 +312,8 @@ internal class ValueFunctionForTrain<WeightType> where WeightType : unmanaged, I
         Debug.Assert(phase < NumPhases);
 
         var x = WeightType.Zero;
-        fixed (int* discColorOffset = this._discColorOffset)
-        fixed (WeightType* weights = &Weights[this._discColorOffset[(int)DiscColor.Black] + _phaseOffset[phase]])
+        fixed (int* discColorOffset = _discColorOffset)
+        fixed (WeightType* weights = &Weights[_discColorOffset[(int)DiscColor.Black] + _phaseOffset[phase]])
         fixed (Feature* features = posFeatureVec.Features)
         {
             for (var nTupleID = 0; nTupleID < _nTupleOffset.Length; nTupleID++)

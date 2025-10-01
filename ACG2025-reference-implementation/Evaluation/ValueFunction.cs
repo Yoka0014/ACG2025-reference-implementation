@@ -269,8 +269,8 @@ internal class ValueFunction
             phase = toPhase[featureVec.EmptyCellCount];
 
         var y = 0;
-        fixed (int* discColorOffset = this._discColorOffset)
-        fixed (QWeightType* weights = &Weights[this._discColorOffset[(int)featureVec.SideToMove] + _phaseOffset[phase]])
+        fixed (int* discColorOffset = _discColorOffset)
+        fixed (QWeightType* weights = &Weights[_discColorOffset[(int)featureVec.SideToMove] + _phaseOffset[phase]])
         fixed (Feature* features = featureVec.Features)
         {
             for (var nTupleID = 0; nTupleID < _nTupleOffset.Length; nTupleID++)

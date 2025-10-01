@@ -32,7 +32,7 @@ internal class MoveEval(IEnumerable<BoardCoordinate> pv) : IComparable<MoveEval>
 {
     public BoardCoordinate Move { get; init; }
     public double Effort { get; init; }
-    public long PlayoutCount { get; init; }
+    public long SimulationCount { get; init; }
     public double ExpectedReward { get; init; }
     public GameResult GameResult { get; init; }
     public ReadOnlySpan<BoardCoordinate> PV => _pv;
@@ -56,7 +56,7 @@ internal class MoveEval(IEnumerable<BoardCoordinate> pv) : IComparable<MoveEval>
             }
         }
 
-        var diff = PlayoutCount - other.PlayoutCount;
+        var diff = SimulationCount - other.SimulationCount;
         if (diff != 0)
             return diff > 0;
         return ExpectedReward > other.ExpectedReward;
@@ -83,7 +83,7 @@ internal class MoveEval(IEnumerable<BoardCoordinate> pv) : IComparable<MoveEval>
         if (priority != otherPriority)
             return priority.CompareTo(otherPriority);
 
-        return PlayoutCount.CompareTo(other.PlayoutCount);
+        return SimulationCount.CompareTo(other.SimulationCount);
     }
 }
 
@@ -128,9 +128,13 @@ internal class PUCTSearcher
         _nodeCountPerThread = new long[_numThreads];
     }
 
+    public bool IsSearching => _isSearching;
+
     public int SearchElapsedMs => _isSearching ? Environment.TickCount - _searchStartTimeMs : _searchEndTimeMs - _searchStartTimeMs;
 
     public long NodeCount => _nodeCountPerThread.Sum();
+
+    public double Nps => NodeCount / (SearchElapsedMs * 1.0e-3);
 
     public int NumThreads
     {
@@ -209,7 +213,7 @@ internal class PUCTSearcher
         {
             Move = BoardCoordinate.Null,
             Effort = 1.0,
-            PlayoutCount = _root.VisitCount,
+            SimulationCount = _root.VisitCount,
             GameResult = EdgeLabelToGameResult(rootEdgeLabel),
             ExpectedReward = (rootEdgeLabel == EdgeLabel.NotProved) ? _root.ExpectedReward : OutcomeToReward[(int)(rootEdgeLabel ^ EdgeLabel.Proved)]
         };
@@ -221,7 +225,7 @@ internal class PUCTSearcher
             {
                 Move = edge.Move.Coord,
                 Effort = (_root.VisitCount != 0) ? (double)edge.VisitCount / _root.VisitCount : 0.0,
-                PlayoutCount = edge.VisitCount,
+                SimulationCount = edge.VisitCount,
                 GameResult = EdgeLabelToGameResult(edge.Label),
                 ExpectedReward = edge.IsProved ? OutcomeToReward[(int)(edge.Label ^ EdgeLabel.Proved)] : edge.ExpectedReward
             };
@@ -247,7 +251,19 @@ internal class PUCTSearcher
         return edges[rand.Sample(prob)].Move;
     }
 
-    public void Search(uint numSimulations, int timeLimitCs)
+    public async Task SearchAsync(long numSimulations, int timeLimitCs, Action onCompleted)
+    {
+        _cts = new CancellationTokenSource();
+        _isSearching = true;
+
+        await Task.Run(() =>
+        {
+            Search(numSimulations, timeLimitCs);
+            onCompleted();
+        }).ConfigureAwait(false);
+    }
+
+    public void Search(long numSimulations, int timeLimitCs)
     {
         if (_root is null)
             throw new InvalidOperationException("The root state was not initialized.");

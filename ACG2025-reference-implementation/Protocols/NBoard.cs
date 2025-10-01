@@ -114,7 +114,10 @@ internal class NBoard : IProtocol
         _commands["depth"] = ExecuteSetDepthCommand;
         _commands["game"] = ExecuteSetGameCommand;
         _commands["contempt"] = ExecuteSetContemptCommand;
-        _commands["time"] = ExecuteSetTimeCommand;  // Extension to standard NBoard protocol
+
+        // Extensions to standard NBoard protocol
+        _commands["time"] = ExecuteSetTimeCommand;
+        _commands["option"] = ExecuteSetOptionCommand;
     }
 
     /// <summary>
@@ -499,6 +502,29 @@ internal class NBoard : IProtocol
             }
             return true;
         }
+    }
+
+    /// <summary>
+    /// Executes the 'set option' command to configure engine-specific options.
+    /// Format: set option [option_name] [value]
+    /// </summary>
+    /// <param name="tokenizer">The tokenizer containing the option name and value.</param>
+    void ExecuteSetOptionCommand(Tokenizer tokenizer)
+    {
+        if (tokenizer.IsEndOfString)
+        {
+            Fail($"Specify name and value of option.");
+            return;
+        }
+
+        var optionName = tokenizer.ReadNext();
+        if(tokenizer.IsEndOfString) 
+        {
+            Fail($"Specify a value.");
+            return;
+        }
+
+        _engine?.SetOption(optionName, tokenizer.ReadNext());
     }
 
     /// <summary>

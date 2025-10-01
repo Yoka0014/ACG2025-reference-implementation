@@ -319,7 +319,7 @@ internal class FeatureVector
         var flipper = typeof(SideToMove) == typeof(Black) ? NTuple.BlackCell - NTuple.WhiteCell : NTuple.WhiteCell - NTuple.BlackCell;
 
         fixed(Feature* features = Features)
-        fixed (FeatureDiff* featureDiffTable = this._featureDiffTable)
+        fixed (FeatureDiff* featureDiffTable = _featureDiffTable)
         {
             foreach (var (nTupleID, idx, diff) in featureDiffTable[(int)move.Coord].Values)
                 features[nTupleID][idx] += (FeatureType)(placer * diff);
@@ -342,7 +342,7 @@ internal class FeatureVector
         var flipper = typeof(SideToMove) == typeof(Black) ? NTuple.WhiteCell - NTuple.BlackCell : NTuple.BlackCell - NTuple.WhiteCell;
 
         fixed (Feature* features = Features)
-        fixed (FeatureDiff* featureDiffTable = this._featureDiffTable)
+        fixed (FeatureDiff* featureDiffTable = _featureDiffTable)
         {
             foreach (var (nTupleID, idx, diff) in featureDiffTable[(int)move.Coord].Values)
                 features[nTupleID][idx] += (FeatureType)(remover * diff);

@@ -36,21 +36,21 @@ internal struct State
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Update(ref Move move)
     {
-        this.Position.Update(ref move);
-        this.FeatureVector.Update(ref move);
+        Position.Update(ref move);
+        FeatureVector.Update(ref move);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Pass()
     {
-        this.Position.Pass();
-        this.FeatureVector.Pass();
+        Position.Pass();
+        FeatureVector.Pass();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Undo(ref Move move)
     {
-        this.Position.Undo(ref move);
-        this.FeatureVector.Undo(ref move);
+        Position.Undo(ref move);
+        FeatureVector.Undo(ref move);
     }
 }

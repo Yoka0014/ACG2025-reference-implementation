@@ -1,4 +1,5 @@
 global using MultiPV = System.Collections.Generic.List<ACG2025_reference_implementation.Engines.MultiPVItem>;
+global using EngineOptions = System.Collections.Generic.Dictionary<string, ACG2025_reference_implementation.Engines.EngineOption>;
 
 namespace ACG2025_reference_implementation.Engines;
 
@@ -35,7 +36,7 @@ internal class ThinkInfo(IEnumerable<BoardCoordinate> pv)
     /// <summary>Elapsed time in milliseconds</summary>
     public int? ElapsedMs { get; init; }
     /// <summary>Number of nodes searched</summary>
-    public ulong? NodeCount { get; init; }
+    public long? NodeCount { get; init; }
     /// <summary>Nodes per second</summary>
     public double? Nps { get; init; }
     /// <summary>Search depth</summary>
@@ -58,7 +59,7 @@ internal class MultiPVItem(IEnumerable<BoardCoordinate> pv)
     /// <summary>Search depth for this variation</summary>
     public int? Depth { get; init; }
     /// <summary>Number of nodes searched for this variation</summary>
-    public ulong? NodeCount { get; init; }
+    public long? NodeCount { get; init; }
     /// <summary>Evaluation score for this variation</summary>
     public double? EvalScore { get; init; }
     /// <summary>Type of evaluation score</summary>
@@ -114,6 +115,83 @@ internal class EngineMove
     }
 }
 
+internal class EngineOption
+{
+    public string DefaultValue { get; }
+    public long MinValue { get; } = long.MinValue;
+    public long MaxValue { get; } = long.MaxValue;
+    public bool IsInteger { get; }
+    public event Action<EngineOption> ValueChanged = _ => { };
+
+    string _currentValue;
+
+    public EngineOption(bool value)
+    {
+        DefaultValue = _currentValue = value.ToString();
+        IsInteger = false;
+    }
+
+    public EngineOption(string value)
+    {
+        DefaultValue = _currentValue = value;
+        IsInteger = false;
+    }
+
+    public EngineOption(long value, long min = long.MinValue, long max = long.MaxValue)
+    {
+        DefaultValue = _currentValue = value.ToString();
+        IsInteger = true;
+        (MinValue, MaxValue) = (min, max);
+    }
+
+    public string CurrentValue
+    {
+        get => _currentValue;
+
+        set
+        {
+            if (IsInteger)
+            {
+                var v = long.Parse(value);
+                if (MinValue <= v && v <= MaxValue)
+                    _currentValue = value;
+                else
+                    throw new ArgumentOutOfRangeException(nameof(value));
+
+                ValueChanged(this);
+                return;
+            }
+
+            _currentValue = value;
+            ValueChanged(this);
+            return;
+        }
+    }
+
+    public static implicit operator int(EngineOption option)
+    {
+        if (option.IsInteger)
+            return int.Parse(option.CurrentValue);
+        throw new InvalidCastException("Cannot cast non-integer EngineOption to long");
+    }
+
+    public static implicit operator long(EngineOption option)
+    {
+        if (option.IsInteger)
+            return long.Parse(option.CurrentValue);
+        throw new InvalidCastException("Cannot cast non-integer EngineOption to long");
+    }
+
+    public static implicit operator string(EngineOption option) => option.CurrentValue;
+
+    public static implicit operator bool(EngineOption option)
+    {
+        if (bool.TryParse(option.CurrentValue, out var flag))
+            return flag;
+        throw new InvalidCastException("Cannot cast non-boolean EngineOption to bool");
+    }
+}
+
 /// <summary>
 /// Abstract base class for Reversi game engines.
 /// Provides common functionality for position management, move handling, and communication with protocols.
@@ -129,6 +207,8 @@ internal abstract class Engine(string name, string version, string author)
     public string Version { get; private set; } = version;
     /// <summary>Author of the engine</summary>
     public string Author { get; private set; } = author;
+
+    public bool IsReady { get; private set; } = false;
 
     /// <summary>Current side to move</summary>
     public DiscColor SideToMove => _position.SideToMove;
@@ -158,6 +238,8 @@ internal abstract class Engine(string name, string version, string author)
     protected Position Position => _position;
     /// <summary>Read-only collection of move history</summary>
     protected ReadOnlyCollection<Move> MoveHistory => new(_moveHistory);
+    /// <summary>Engine-specific configuration options</summary>
+    protected EngineOptions Options = [];
 
     Position _position = new();
     readonly List<Move> _moveHistory = [];
@@ -171,7 +253,7 @@ internal abstract class Engine(string name, string version, string author)
     /// <summary>
     /// Initializes the engine and prepares it for use.
     /// </summary>
-    public bool Ready() => OnReady();
+    public bool Ready() => IsReady = OnReady();
 
     /// <summary>
     /// Initializes the position to the specified state and clears move history.
@@ -232,6 +314,45 @@ internal abstract class Engine(string name, string version, string author)
         return true;
     }
 
+    /// <summary>
+    /// Sets the value of a specific engine configuration option.
+    /// </summary>
+    /// <param name="name">The name of the option to set</param>
+    /// <param name="value">The new value for the option as a string</param>
+    /// <returns>True if the option was found and set successfully, false if the option does not exist</returns>
+    public bool SetOption(string name, string value)
+    {
+        if (!Options.TryGetValue(name, out EngineOption? option))
+            return false;
+
+        try
+        {
+            option.CurrentValue = value;
+        }
+        catch (Exception ex) when (ex is ArgumentOutOfRangeException || ex is OverflowException)
+        {
+            if (option.IsInteger)
+            {
+                SendErrorMessage($"Value '{value}' is out of range. Must be between {option.MinValue} and {option.MaxValue}.");
+                return false;
+            }
+
+            throw;
+        }
+        catch (FormatException)
+        {
+            if (option.IsInteger)
+            {
+                SendErrorMessage($"Value '{value}' is not a valid integer.");
+                return false;
+            }
+
+            throw;
+        }
+
+        return true;
+    }
+
     /// <summary>Terminates the engine and cleans up resources</summary>
     public abstract void Quit();
 
@@ -242,7 +363,7 @@ internal abstract class Engine(string name, string version, string author)
     /// <param name="color">The player color to set main time for</param>
     /// <param name="mainTimeMs">Main time in milliseconds</param>
     public abstract void SetMainTime(DiscColor color, int mainTimeMs);
-    
+
     /// <summary>
     /// Sets the byoyomi time for the specified player color.
     /// This is the time limit for making moves after main time is exhausted.
@@ -250,7 +371,7 @@ internal abstract class Engine(string name, string version, string author)
     /// <param name="color">The player color to set byoyomi time for</param>
     /// <param name="byoyomiMs">Byoyomi time in milliseconds</param>
     public abstract void SetByoyomi(DiscColor color, int byoyomiMs);
-    
+
     /// <summary>
     /// Sets the number of stones (moves) that must be played within byoyomi time.
     /// Used in Canadian time system where multiple moves must be made in the byoyomi period.
@@ -258,7 +379,7 @@ internal abstract class Engine(string name, string version, string author)
     /// <param name="color">The player color to set byoyomi stones for</param>
     /// <param name="byoyomiStones">Number of moves to be made within byoyomi time</param>
     public abstract void SetByoyomiStones(DiscColor color, int byoyomiStones);
-    
+
     /// <summary>
     /// Sets the time increment added after each move (Fischer time system).
     /// Time is added to the player's clock after making each move.
@@ -298,6 +419,7 @@ internal abstract class Engine(string name, string version, string author)
     /// <summary>Sends the decided move to listeners</summary>
     /// <param name="move">Move to send</param>
     protected void SendMove(EngineMove move) => MoveWasSent(this, move);
+    protected void EndAnalysis() => AnalysisEnded(this, EventArgs.Empty);
 
     /// <summary>Called when the engine should initialize and prepare for use</summary>
     /// <returns>True if initialization succeeded, false otherwise</returns>
