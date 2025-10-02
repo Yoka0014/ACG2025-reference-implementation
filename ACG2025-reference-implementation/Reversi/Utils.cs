@@ -155,6 +155,18 @@ internal static class Utils
         return Coordinate2DTo1D(lstr[0] - 'a', lstr[1] - '1');
     }
 
+    public static string? CoordinateToString(BoardCoordinate coord)
+    {
+        if (coord == BoardCoordinate.Pass)
+            return "pass";
+
+        var (x, y) = Coordinate1DTo2D(coord);
+        if (BoardCoordinate.A1 <= coord && coord <= BoardCoordinate.H8)
+            return $"{(char)('A' + x)}{(char)('1' + y)}";
+            
+        return null;
+    }
+
     public static DiscColor ToOpponentColor(DiscColor color) => color ^ DiscColor.White;
 
     public static DiscColor ParseDiscColor(string? str)

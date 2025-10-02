@@ -35,7 +35,7 @@ internal class MCTSEngine : Engine
     Random _rand;
 
     /// <summary>Time control settings for both players (Black and White)</summary>
-    readonly TimeControl[] _timeControls = [new TimeControl(), new TimeControl()];
+    readonly TimeControl[] _timeControls = [new TimeControl() { MainTimeMs = int.MaxValue }, new TimeControl() { MainTimeMs = int.MaxValue }];
 
     /// <summary>
     /// Initializes a new instance of MCTSEngine with no log file.

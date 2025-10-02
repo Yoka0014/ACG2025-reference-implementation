@@ -285,7 +285,7 @@ internal class ValueFunction
                 y += bias[phase];
         }
 
-        return Math.Min(Math.Max(y / FVScale, ValueMin), ValueMax);
+        return Math.Clamp(y / FVScale, ValueMin, ValueMax);
     }
 
     /// <summary>

@@ -11,7 +11,9 @@ namespace ACG2025_reference_implementation
     {
         static void Main(string[] args)
         {
-            
+            var engine = new MCTSEngine();
+            var nboard = new NBoard();
+            nboard.Mainloop(engine);
         }
     }
 }
