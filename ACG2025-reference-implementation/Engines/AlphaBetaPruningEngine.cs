@@ -9,22 +9,43 @@ using ACG2025_reference_implementation.Search.AlphaBetaPruning;
 
 namespace ACG2025_reference_implementation.Engines;
 
+/// <summary>
+/// Alpha-beta pruning engine for Reversi game.
+/// This engine uses alpha-beta search with transposition table, move ordering,
+/// and a n-tuple-based evaluation function for strong gameplay.
+/// </summary>
 internal class AlphaBetaPruningEngine : Engine
 {
+    /// <summary>Default size of transposition table in mebibytes</summary>
     const int DefaultTTSizeMiB = 512;
+    /// <summary>Minimum allowed size of transposition table in mebibytes</summary>
     const int TTSizeMibMin = 1;
+    /// <summary>Default path to the value function weights file</summary>
     const string DefaultValueFuncWeightsPath = "params/value_func_weights.bin";
+    /// <summary>Timeout for waiting search operations in milliseconds</summary>
     const int WaitTimeoutMs = 10000;
 
-    // Depth[level][num_empty_cells]
+    /// <summary>
+    /// Search depth configuration array indexed by level and number of empty cells.
+    /// Determines search depth based on engine level and game phase.
+    /// </summary>
     static readonly int[][] Depth;
 
+    /// <summary>Time control settings for both players (Black and White)</summary>
     readonly TimeControl[] _timeControls = [new TimeControl { MainTimeMs = int.MaxValue }, new TimeControl { MainTimeMs = int.MaxValue }];
+    /// <summary>Current engine thinking level</summary>
     int _level = 1;
-    ValueFunction _valueFunc;
-    Searcher _searcher;
-    Task<SearchResult?> _searchTask;
+    /// <summary>Neural network-based evaluation function</summary>
+    ValueFunction? _valueFunc;
+    /// <summary>Alpha-beta search algorithm implementation</summary>
+    Searcher? _searcher;
+    /// <summary>Currently running search task</summary>
+    Task<SearchResult?>? _searchTask;
 
+    /// <summary>
+    /// Static constructor that initializes the depth configuration table.
+    /// Sets up search depths for different engine levels and game phases.
+    /// </summary>
     static AlphaBetaPruningEngine()
     {
         Depth = new int[Constants.NumCells + 1][];
@@ -37,33 +58,40 @@ internal class AlphaBetaPruningEngine : Engine
         {
             if (level >= 0 && level <= 10)
             {
-                // Lv.1 ~ Lv.10までは，levelの値と同数の深さを読み，残り level * 2　手は完全読みを行う．
+                // For levels 1-10: search to depth = level, with perfect search for remaining level * 2 moves
                 for (int numEmpties = 0; numEmpties <= 60; numEmpties++)
                     Depth[level][numEmpties] = (numEmpties > level * 2) ? level : numEmpties;
             }
             else if (level >= 11 && level <= 22)
             {
-                // Lv.11 ~ Lv.22までは，levelの値と同数の深さを読み，残り22手以下は完全読みを行う．
+                // For levels 11-22: search to depth = level, with perfect search for remaining 22 moves or fewer
                 for (int numEmpties = 0; numEmpties <= 60; numEmpties++)
                     Depth[level][numEmpties] = (numEmpties > 22) ? level : numEmpties;
             }
             else if (level >= 23 && level <= 30)
             {
-                // Lv.23 ~ Lv.30までは，levelの値と同数の深さを読み，残り30手以下は完全読みを行う．
+                // For levels 23-30: search to depth = level, with perfect search for remaining 30 moves or fewer
                 for (int numEmpties = 0; numEmpties <= 60; numEmpties++)
                     Depth[level][numEmpties] = (numEmpties > 30) ? level : numEmpties;
             }
             else
             {
-                // L.31以降は，levelの値と同数の深さを読む．
+                // For level 31 and above: search to depth = level
                 for (int numEmpties = 0; numEmpties <= 60; numEmpties++)
                     Depth[level][numEmpties] = (numEmpties > level) ? level : numEmpties;
             }
         }
     }
 
+    /// <summary>
+    /// Initializes a new instance of the AlphaBetaPruningEngine class.
+    /// Sets up engine metadata and configuration options.
+    /// </summary>
     public AlphaBetaPruningEngine() : base("AlphaBetaPruningEngine", "0.0", "Yoka0014") => InitOptions();
 
+    /// <summary>
+    /// Initializes engine configuration options and sets up event handlers.
+    /// </summary>
     void InitOptions()
     {
         Options["tt_size_mib"] = new EngineOption(DefaultTTSizeMiB, min: TTSizeMibMin, long.MaxValue);
@@ -74,6 +102,9 @@ internal class AlphaBetaPruningEngine : Engine
         Options["value_func_weights_path"].ValueChanged += ValueFuncWeightsPathChanged;
     }
 
+    /// <summary>
+    /// Terminates the engine and stops any ongoing search operations.
+    /// </summary>
     public override void Quit()
     {
         if (_searcher is not null && _searcher.IsSearching)
@@ -92,19 +123,27 @@ internal class AlphaBetaPruningEngine : Engine
     /// <inheritdoc/>
     public override void SetTimeIncrement(DiscColor color, int incMs) => _timeControls[(int)color].IncrementMs = incMs;
 
+    /// <summary>
+    /// Sets the engine's thinking level, which determines search depth and strength.
+    /// </summary>
+    /// <param name="level">The level to set (higher values result in stronger play)</param>
     public override void SetLevel(int level) => _level = level;
 
+    /// <summary>
+    /// Starts the engine thinking process to generate a move for the current position.
+    /// Handles special cases like forced passes and single legal moves before starting search.
+    /// </summary>
     public override void Go()
     {
         if (_searcher is null)
         {
-            SendErrorMessage("Specify the value function's weights file.");
+            SendErrorMessage("Value function weights file must be specified.");
             return;
         }
 
         if (!StopIfPondering())
         {
-            SendErrorMessage("Cannot stop pondering. There must be some troubles in search thread.");
+            SendErrorMessage("Cannot stop current search. There may be issues with the search thread.");
             return;
         }
 
@@ -126,19 +165,22 @@ internal class AlphaBetaPruningEngine : Engine
 
         GenerateMove();
     }
+    /// <summary>
+    /// Starts position analysis to provide multiple candidate moves with evaluations.
+    /// Currently only provides the principal variation (single best line).
+    /// </summary>
+    /// <param name="numHints">Number of candidate moves to analyze (currently ignored as multi-PV is not implemented)</param>
     public override void Analyze(int numHints)
     {
-        // Note: multi pvが未実装なので，numHintsは無視する．
-
         if (_searcher is null)
         {
-            SendErrorMessage("Specify the value function's weights file.");
+            SendErrorMessage("Value function weights file must be specified.");
             return;
         }
 
         if (!StopIfPondering())
         {
-            SendErrorMessage("Cannot stop pondering. There must be some troubles in search thread.");
+            SendErrorMessage("Cannot stop current search. There may be issues with the search thread.");
             return;
         }
 
@@ -151,17 +193,22 @@ internal class AlphaBetaPruningEngine : Engine
             SendMultiPV(multiPV);
         }
 
-        _searcher.PVNotificationIntervalMs = Options["show_search_result_interval_cs"] * 10;
+        _searcher!.PVNotificationIntervalMs = Options["show_search_result_interval_cs"] * 10;
         _searchTask = _searcher.SearchAsync(Depth[_level][Position.EmptyCellCount], OnCompleted);
     }
 
+    /// <summary>
+    /// Stops the current thinking process with a specified timeout.
+    /// </summary>
+    /// <param name="timeoutMs">Maximum time to wait for the search to stop in milliseconds</param>
+    /// <returns>True if the search was stopped successfully within the timeout, false otherwise</returns>
     public override bool StopThinking(int timeoutMs)
     {
         if (_searcher is null || !_searcher.IsSearching)
             return true;
 
         _searcher.Stop();
-        return _searchTask.Wait(timeoutMs);
+        return _searchTask?.Wait(timeoutMs) ?? true;
     }
 
     protected override bool OnReady()
@@ -179,7 +226,7 @@ internal class AlphaBetaPruningEngine : Engine
         }
         catch (InvalidDataException ex)
         {
-            SendErrorMessage($"Cannot load evaluator's parameters. Detail: \"{ex.Message}\"");
+            SendErrorMessage($"Cannot load value function weights. Details: \"{ex.Message}\"");
             return false;
         }
 
@@ -199,11 +246,15 @@ internal class AlphaBetaPruningEngine : Engine
         return true;
     }
 
+    /// <summary>
+    /// Called when the game position is initialized to the starting state.
+    /// Updates the search tree root to match the new position.
+    /// </summary>
     protected override void OnInitializedPosition()
     {
         if (!StopIfPondering())
         {
-            SendErrorMessage("Cannot stop pondering. There must be some troubles in search thread.");
+            SendErrorMessage("Cannot stop current search. There may be issues with the search thread.");
             return;
         }
 
@@ -214,11 +265,16 @@ internal class AlphaBetaPruningEngine : Engine
         }
     }
 
+    /// <summary>
+    /// Called when a move is made on the board.
+    /// Attempts to update the search tree incrementally, falling back to full reset if necessary.
+    /// </summary>
+    /// <param name="move">The move that was made</param>
     protected override void OnUpdatedPosition(Move move)
     {
         if (!StopIfPondering())
         {
-            SendErrorMessage("Cannot stop pondering. There must be some troubles in search thread.");
+            SendErrorMessage("Cannot stop current search. There may be issues with the search thread.");
             return;
         }
 
@@ -232,8 +288,17 @@ internal class AlphaBetaPruningEngine : Engine
         }
     }
 
+    /// <summary>
+    /// Called when a move is undone from the board.
+    /// Resets the search tree to match the current position.
+    /// </summary>
+    /// <param name="move">The move that was undone</param>
     protected override void OnUndonePosition(Move move) => OnInitializedPosition();
 
+    /// <summary>
+    /// Initiates the search process to generate the best move for the current position.
+    /// Sets up search completion callback and starts asynchronous search.
+    /// </summary>
     void GenerateMove()
     {
         void OnCompleted(object? sender, SearchResult res)
@@ -254,20 +319,29 @@ internal class AlphaBetaPruningEngine : Engine
             SendMove(move);
         };
 
-        _searcher.PVNotificationIntervalMs = Options["show_search_result_interval_cs"] * 10;
+        _searcher!.PVNotificationIntervalMs = Options["show_search_result_interval_cs"] * 10;
         _searchTask = _searcher.SearchAsync(Depth[_level][Position.EmptyCellCount], OnCompleted);
     }
 
+    /// <summary>
+    /// Stops any ongoing search (pondering) if one is in progress.
+    /// </summary>
+    /// <returns>True if no search was running or if the search was stopped successfully, false if timeout occurred</returns>
     bool StopIfPondering()
     {
         if (_searcher is not null && _searcher.IsSearching)
         {
             _searcher.Stop();
-            return _searchTask.Wait(WaitTimeoutMs);
+            return _searchTask?.Wait(WaitTimeoutMs) ?? true;
         }
         return true;
     }
 
+    /// <summary>
+    /// Event handler called when the transposition table size option is changed.
+    /// Resizes the transposition table if the engine is ready and not currently searching.
+    /// </summary>
+    /// <param name="option">The engine option containing the new table size in MiB</param>
     void TTSizeChanged(EngineOption option)
     {
         if (!IsReady)
@@ -275,19 +349,24 @@ internal class AlphaBetaPruningEngine : Engine
 
         if (!StopIfPondering())
         {
-            SendErrorMessage("Cannot stop pondering. There must be some troubles in search thread.");
+            SendErrorMessage("Cannot stop current search. There may be issues with the search thread.");
             return;
         }
 
-        _searcher.TryResizeTranspositionTable(option * 1024L * 1024L);
+        _searcher?.TryResizeTranspositionTable(option * 1024L * 1024L);
     }
 
+    /// <summary>
+    /// Event handler called when the value function weights file path option is changed.
+    /// Reloads the value function if the engine is ready and the file exists.
+    /// </summary>
+    /// <param name="option">The engine option containing the new file path</param>
     void ValueFuncWeightsPathChanged(EngineOption option)
     {
         string path = option;
         if(!File.Exists(path))
         {
-            SendErrorMessage($"Cannot find evaluator's parameters file: \"{path}\".");
+            SendErrorMessage($"Cannot find value function weights file: \"{path}\".");
             return;
         }
 
