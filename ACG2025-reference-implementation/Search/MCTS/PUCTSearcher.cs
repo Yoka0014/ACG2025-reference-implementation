@@ -16,29 +16,67 @@ using ACG2025_reference_implementation.Evaluation;
 
 using static PUCTConstants;
 
+/// <summary>
+/// Constants used in the PUCT (Predictor + Upper Confidence Bounds applied to Trees) search algorithm.
+/// These constants define exploration parameters and outcome mappings for the MCTS implementation.
+/// </summary>
 internal static class PUCTConstants
 {
+    /// <summary>Exploration factor in the PUCT formula</summary>
     public const float PUCTFactor = 1.0f;
+    
+    /// <summary>Virtual loss added during parallel search to avoid overexploring the same path</summary>
     public const uint VirtualLoss = 1;
 
+    /// <summary>Bit flag representing a winning outcome</summary>
     public const int OutcomeWin = 1;
+    
+    /// <summary>Bit flag representing a losing outcome</summary>
     public const int OutcomeLoss = 1 << 1;
+    
+    /// <summary>Bit flag representing a draw outcome</summary>
     public const int OutcomeDraw = 1 << 2;
+    
+    /// <summary>Maps outcome flags to reward values (Win=1.0, Loss=0.0, Draw=0.5)</summary>
     public static ReadOnlySpan<float> OutcomeToReward => [float.NaN, 1.0f, 0.0f, float.NaN, 0.5f];
+    
+    /// <summary>Maps outcome from current player's perspective to opponent's perspective</summary>
     public static ReadOnlySpan<int> ToOpponentOutcome => [0, OutcomeLoss, OutcomeWin, 0, OutcomeDraw];
 }
 
+/// <summary>
+/// Represents the evaluation result for a move in the search tree.
+/// Contains move information, search statistics, and the principal variation.
+/// </summary>
+/// <param name="pv">Principal variation (sequence of best moves) from this position</param>
 internal class MoveEval(IEnumerable<BoardCoordinate> pv) : IComparable<MoveEval>
 {
+    /// <summary>The move being evaluated</summary>
     public BoardCoordinate Move { get; init; }
+    
+    /// <summary>Proportion of search effort spent on this move (0.0 to 1.0)</summary>
     public double Effort { get; init; }
+    
+    /// <summary>Number of simulations performed for this move</summary>
     public long SimulationCount { get; init; }
+    
+    /// <summary>Expected reward (Q-value) for this move</summary>
     public double ExpectedReward { get; init; }
+    
+    /// <summary>Proven game result for this move, if any</summary>
     public GameResult GameResult { get; init; }
+    
+    /// <summary>Gets the principal variation (best line of play) from this move</summary>
     public ReadOnlySpan<BoardCoordinate> PV => _pv;
 
     readonly BoardCoordinate[] _pv = [.. pv];
 
+    /// <summary>
+    /// Determines if this move evaluation has higher priority than another.
+    /// Prioritizes proven results (Win > Draw > Loss), then simulation count, then expected reward.
+    /// </summary>
+    /// <param name="other">Move evaluation to compare against</param>
+    /// <returns>True if this move has higher priority, false otherwise</returns>
     public bool PriorTo(MoveEval other)
     {
         if (GameResult != GameResult.NotOver)
@@ -62,6 +100,12 @@ internal class MoveEval(IEnumerable<BoardCoordinate> pv) : IComparable<MoveEval>
         return ExpectedReward > other.ExpectedReward;
     }
 
+    /// <summary>
+    /// Compares this move evaluation with another for sorting purposes.
+    /// Used by Array.Sort and similar methods to order moves by priority.
+    /// </summary>
+    /// <param name="other">Move evaluation to compare against</param>
+    /// <returns>Comparison result: negative if this is less, positive if greater, zero if equal</returns>
     public int CompareTo(MoveEval? other)
     {
         if (other is null)
@@ -87,55 +131,107 @@ internal class MoveEval(IEnumerable<BoardCoordinate> pv) : IComparable<MoveEval>
     }
 }
 
+/// <summary>
+/// Contains the complete results of a MCTS, including evaluation of the root position
+/// and all child moves sorted by priority.
+/// </summary>
+/// <param name="rootEval">Evaluation of the root position</param>
+/// <param name="childEvals">Evaluations of all child moves</param>
 internal class SearchResult(MoveEval rootEval, IEnumerable<MoveEval> childEvals)
 {
+    /// <summary>Evaluation result for the root position</summary>
     public MoveEval RootEval { get; } = rootEval;
+    
+    /// <summary>Evaluation results for all child moves, sorted by priority</summary>
     public ReadOnlySpan<MoveEval> ChildEvals => _childEvals;
+    
     readonly MoveEval[] _childEvals = [.. childEvals];
 }
 
+/// <summary>
+/// Implementation of PUCT (Predictor + Upper Confidence Bounds applied to Trees) search algorithm.
+/// This is a Monte Carlo Tree Search variant that uses n-tuple-based value function's guidance for move selection
+/// and position evaluation, with parallel tree search support.
+/// </summary>
 internal class PUCTSearcher
 {
     const float Epsilon = 1.0e-6f;
 
+    /// <summary>Event fired when search results are updated during search</summary>
     public event EventHandler<SearchResult?> SearchResultUpdated = delegate { };
 
+    /// <summary>Gets or sets the interval for search result updates in centiseconds</summary>
     public int SearchResultUpdateIntervalCs { get; set; }
 
+    /// <summary>Gets or sets the Dirichlet alpha parameter for root node exploration noise</summary>
     public double RootDirchletAlpha { get; set; } = 0.3;
+    
+    /// <summary>Gets or sets the fraction of root prior probability to replace with Dirichlet noise</summary>
     public double RootExplorationFraction { get; set; } = 0.25;
 
-    ValueFunction _valueFunc;
+    /// <summary>Value function used for position evaluation</summary>
+    readonly ValueFunction _valueFunc;
 
+    /// <summary>Root node of the search tree</summary>
     Node? _root;
+    
+    /// <summary>Proof label for the root edge</summary>
     EdgeLabel _rootEdgeLabel;
+    
+    /// <summary>Game position at the root of the search tree</summary>
     Position _rootPos;
 
+    /// <summary>Flag indicating whether search is currently running</summary>
     volatile bool _isSearching;
+    
+    /// <summary>Cancellation token source for stopping search</summary>
     CancellationTokenSource? _cts;
 
+    /// <summary>Timestamp when search started (in milliseconds)</summary>
     int _searchStartTimeMs = 0;
+    
+    /// <summary>Timestamp when search ended (in milliseconds)</summary>
     int _searchEndTimeMs = 0;
 
+    /// <summary>Number of threads to use for parallel search</summary>
     int _numThreads = Environment.ProcessorCount;
+    
+    /// <summary>Node count per thread for tracking search statistics</summary>
     long[] _nodeCountPerThread;
+    
+    /// <summary>Maximum number of simulations to perform</summary>
     long _maxSimulationCount;
+    
+    /// <summary>Current number of simulations performed</summary>
     long _simulationCount;
 
+    /// <summary>
+    /// Initializes a new instance of the PUCTSearcher class.
+    /// </summary>
+    /// <param name="valueFunc">Value function to use for position evaluation</param>
     public PUCTSearcher(ValueFunction valueFunc)
     {
         _valueFunc = valueFunc;
         _nodeCountPerThread = new long[_numThreads];
     }
 
+    /// <summary>Gets whether a search is currently in progress</summary>
     public bool IsSearching => _isSearching;
 
+    /// <summary>Gets the elapsed time of the current or last search in milliseconds</summary>
     public int SearchElapsedMs => _isSearching ? Environment.TickCount - _searchStartTimeMs : _searchEndTimeMs - _searchStartTimeMs;
 
+    /// <summary>Gets the total number of nodes visited across all threads</summary>
     public long NodeCount => _nodeCountPerThread.Sum();
 
+    /// <summary>Gets the nodes per second rate of the search</summary>
     public double Nps => NodeCount / (SearchElapsedMs * 1.0e-3);
 
+    /// <summary>
+    /// Gets or sets the number of threads to use for parallel search.
+    /// Cannot be changed while a search is in progress.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Thrown when trying to set while searching</exception>
     public int NumThreads
     {
         get => _numThreads;
@@ -153,8 +249,15 @@ internal class PUCTSearcher
         }
     }
 
+    /// <summary>
+    /// Sends a signal to stop the current search operation.
+    /// </summary>
     public void SendStopSearchSignal() => _cts?.Cancel();
 
+    /// <summary>
+    /// Sets the root position for the search tree and initializes a new search tree.
+    /// </summary>
+    /// <param name="pos">The position to set as the root</param>
     public void SetRootPosition(ref Position pos)
     {
         _rootPos = pos;
@@ -164,6 +267,12 @@ internal class PUCTSearcher
         Array.Clear(_nodeCountPerThread);
     }
 
+    /// <summary>
+    /// Transitions the root of the search tree to a child state after the specified move.
+    /// This allows reusing the search tree when a move is played.
+    /// </summary>
+    /// <param name="move">The move that was played</param>
+    /// <returns>True if the transition was successful, false otherwise</returns>
     public bool TransitionRootStateToChildState(BoardCoordinate move)
     {
         if (_root is null || !_root.IsExpanded || !_root.ChildNodeWasInitialized)
@@ -192,6 +301,10 @@ internal class PUCTSearcher
         return false;
     }
 
+    /// <summary>
+    /// Gets the current search results including root evaluation and all child move evaluations.
+    /// </summary>
+    /// <returns>Search result containing move evaluations, or null if no search tree exists</returns>
     public SearchResult? GetSearchResult()
     {
         if (_root is null || _root.Edges is null)
@@ -201,7 +314,7 @@ internal class PUCTSearcher
 
         if ((rootEdgeLabel & EdgeLabel.Proved) != 0)
         {
-            // rootEdgeLabelには，敵視点の勝敗が記録されるため，ここで手番視点に変換が必要．
+            // rootEdgeLabel contains the outcome from the opponent's perspective, so convert to current player's perspective.
             var outcome = (int)(rootEdgeLabel ^ EdgeLabel.Proved);
             rootEdgeLabel = EdgeLabel.Proved | (EdgeLabel)ToOpponentOutcome[outcome];
         }
@@ -236,8 +349,18 @@ internal class PUCTSearcher
         return new SearchResult(rootEval, childEvals);
     }
 
+    /// <summary>
+    /// Selects the best move from the current search tree based on visit count and expected reward.
+    /// </summary>
+    /// <returns>The best move, or null if no search tree exists</returns>
     public Move? SelectBestMove() => _root?.Edges?[SelectBestChildNode(_root)].Move;
 
+    /// <summary>
+    /// Selects a move randomly according to the visit count distribution.
+    /// Moves with higher visit counts have higher probability of being selected.
+    /// </summary>
+    /// <param name="rand">Random number generator to use</param>
+    /// <returns>The selected move, or null if no search tree exists</returns>
     public Move? SelectMoveWithVisitCountDist(Random rand)
     {
         if (_root is null || _root.Edges is null)
@@ -251,6 +374,13 @@ internal class PUCTSearcher
         return edges[rand.Sample(prob)].Move;
     }
 
+    /// <summary>
+    /// Performs asynchronous MCTS search with specified limits and calls completion callback.
+    /// </summary>
+    /// <param name="numSimulations">Maximum number of simulations to perform</param>
+    /// <param name="timeLimitCs">Time limit in centiseconds</param>
+    /// <param name="onCompleted">Callback to execute when search completes</param>
+    /// <returns>Task representing the asynchronous search operation</returns>
     public async Task SearchAsync(long numSimulations, int timeLimitCs, Action onCompleted)
     {
         _cts = new CancellationTokenSource();
@@ -263,6 +393,13 @@ internal class PUCTSearcher
         }).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Performs MCTS search with the specified simulation count and time limits.
+    /// Uses multiple threads for parallel tree search.
+    /// </summary>
+    /// <param name="numSimulations">Maximum number of simulations to perform</param>
+    /// <param name="timeLimitCs">Time limit in centiseconds</param>
+    /// <exception cref="InvalidOperationException">Thrown if root state is not initialized</exception>
     public void Search(long numSimulations, int timeLimitCs)
     {
         if (_root is null)
@@ -292,11 +429,16 @@ internal class PUCTSearcher
         _cts = null;
     }
 
-    public void SearchOnSingleThread(uint numPlayouts)
+    /// <summary>
+    /// Performs MCTS search on a single thread for the specified number of simulations.
+    /// Useful for testing and debugging purposes.
+    /// </summary>
+    /// <param name="numSimulations">Number of simulations to perform</param>
+    public void SearchOnSingleThread(uint numSimulations)
     {
         var rootState = new State(_rootPos, _valueFunc.NTupleManager);
         var state = new State(_valueFunc.NTupleManager);
-        for (var i = 0u; i < numPlayouts && _rootEdgeLabel == EdgeLabel.NotProved; i++)
+        for (var i = 0u; i < numSimulations && _rootEdgeLabel == EdgeLabel.NotProved; i++)
         {
             rootState.CopyTo(ref state);
             VisitRootNode(0, ref state);
@@ -304,6 +446,12 @@ internal class PUCTSearcher
         }
     }
 
+    /// <summary>
+    /// Worker method that runs on each search thread to perform MCTS simulations.
+    /// </summary>
+    /// <param name="threadID">ID of the thread running this worker</param>
+    /// <param name="rootState">Root state to start simulations from</param>
+    /// <param name="ct">Cancellation token to stop the worker</param>
     void SearchWorker(int threadID, State rootState, CancellationToken ct)
     {
         var state = new State(rootState.FeatureVector.NTupleManager);
@@ -320,6 +468,11 @@ internal class PUCTSearcher
         }
     }
 
+    /// <summary>
+    /// Waits for search to complete based on time limit and periodically updates search results.
+    /// </summary>
+    /// <param name="searchTasks">Array of search worker tasks</param>
+    /// <param name="timeLimitMs">Time limit in milliseconds</param>
     void WaitForSearch(Task[] searchTasks, int timeLimitMs)
     {
         var lastCheckPointMs = Environment.TickCount;
@@ -340,6 +493,11 @@ internal class PUCTSearcher
         Task.WaitAll(searchTasks);
     }
 
+    /// <summary>
+    /// Determines whether the search should stop based on various conditions.
+    /// </summary>
+    /// <param name="timeLimitMs">Time limit in milliseconds</param>
+    /// <returns>True if search should stop, false otherwise</returns>
     bool CanStop(int timeLimitMs)
     {
         Debug.Assert(_cts is not null);
@@ -350,6 +508,10 @@ internal class PUCTSearcher
             || _simulationCount >= _maxSimulationCount;
     }
 
+    /// <summary>
+    /// Initializes the child nodes of the root, expanding it if necessary and setting up
+    /// prior probabilities and values using the value function.
+    /// </summary>
     void InitRootChildNodes()
     {
         Debug.Assert(_root is not null);
@@ -382,7 +544,7 @@ internal class PUCTSearcher
         if (_root.Edges[0].Move.Coord == BoardCoordinate.Pass)
             return;
 
-        // 探索性を向上させるため，ルート直下の事前確率にディリクレノイズを加える．
+        // Add Dirichlet noise to prior probabilities at the root to improve exploration.
         var edges = _root.Edges;
         var frac = RootExplorationFraction;
         var noise = Dirichlet.Sample(Random.Shared, [.. Enumerable.Repeat(RootDirchletAlpha, edges.Length)]);
@@ -399,6 +561,12 @@ internal class PUCTSearcher
         }
     }
 
+    /// <summary>
+    /// Visits the root node to perform one MCTS simulation.
+    /// Selects a child, adds virtual loss, and recursively visits or evaluates the position.
+    /// </summary>
+    /// <param name="threadID">ID of the thread performing the visit</param>
+    /// <param name="state">Current game state</param>
     void VisitRootNode(int threadID, ref State state)
     {
         Debug.Assert(_root is not null);
@@ -426,6 +594,16 @@ internal class PUCTSearcher
             UpdateNodeStats(_root, ref childEdge, VisitNode(threadID, ref state, _root.ChildNodes[childIdx], ref childEdge));
     }
 
+    /// <summary>
+    /// Recursively visits a node in the MCTS tree, handling expansion, selection, and backup.
+    /// Implements the core MCTS algorithm with proper handling of pass moves and game termination.
+    /// </summary>
+    /// <param name="threadID">ID of the thread performing the visit</param>
+    /// <param name="state">Current game state</param>
+    /// <param name="node">Node to visit</param>
+    /// <param name="edgeToNode">Edge leading to this node</param>
+    /// <param name="afterPass">Whether this visit is after a pass move</param>
+    /// <returns>Value to backup through the tree (from current player's perspective)</returns>
     double VisitNode(int threadID, ref State state, Node node, ref Edge edgeToNode, bool afterPass = false)
     {
         if (afterPass)
@@ -436,8 +614,8 @@ internal class PUCTSearcher
         var lockTaken = false;
         try
         {
-            // 他スレッドから同時に読み書きが行われないようにノードをロック．
-            // 例外が発生してもロックが外れることを保証するために，クリティカルセクション全体をtry~finallyブロックで囲う必要あり．
+            // Lock the node to prevent concurrent read/write access from other threads.
+            // Use try-finally block to ensure the lock is released even if an exception occurs.
             Monitor.Enter(node, ref lockTaken);
 
             double value;
@@ -500,7 +678,7 @@ internal class PUCTSearcher
                 return 1.0 - value;
             }
 
-            // not pass
+            // Handle non-pass moves
             var childIdx = SelectChildNode(node, ref edgeToNode.Label);
             ref var childEdge = ref edges[childIdx];
             var isFirstVisit = childEdge.VisitCount == 0;
@@ -542,6 +720,12 @@ internal class PUCTSearcher
         }
     }
 
+    /// <summary>
+    /// Sets prior probabilities and values for edges using the value function.
+    /// Uses softmax to convert raw values into probabilities.
+    /// </summary>
+    /// <param name="state">Current game state</param>
+    /// <param name="edges">Array of edges to set priors for</param>
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     unsafe void SetPriorProbsAndValues(ref State state, Edge[] edges)
@@ -562,11 +746,19 @@ internal class PUCTSearcher
             state.Undo(ref edge.Move);
         }
 
-        // softmax
+        // Apply softmax normalization to convert exponential values to probabilities.
         for (var i = 0; i < edges.Length; i++)
             edges[i].PriorProb = (Half)(expValues[i] / expValueSum);
     }
 
+    /// <summary>
+    /// Selects the best child node using the PUCT (PUCB) selection formula.
+    /// Balances exploitation (Q-value) and exploration (prior probability and visit count).
+    /// Also handles proved positions (win/loss/draw).
+    /// </summary>
+    /// <param name="parent">Parent node to select child from</param>
+    /// <param name="parentEdgeLabel">Output parameter for parent's proof status</param>
+    /// <returns>Index of the selected child</returns>
     static int SelectChildNode(Node parent, ref EdgeLabel parentEdgeLabel)
     {
         Debug.Assert(parent.Edges is not null);
@@ -585,7 +777,7 @@ internal class PUCTSearcher
 
             if (edge.IsWin)
             {
-                // if there is a win edge from player view, it determines loss from opponent. 
+                // If there is a winning edge from the current player's view, it means a loss for the opponent.
                 parentEdgeLabel = EdgeLabel.Loss;
                 return i;
             }
@@ -599,7 +791,7 @@ internal class PUCTSearcher
             if (edge.IsDraw)
                 drawCount++;
 
-            // calculate PUCB score.
+            // Calculate PUCT score (Q-value + exploration bonus).
             var q = (float)(edge.ValueSum / (edge.VisitCount + Epsilon));
             var u = PUCTFactor * (float)edge.PriorProb * sqrtVisitSum / (1.0f + edge.VisitCount);
             var score = q + u;
@@ -617,6 +809,12 @@ internal class PUCTSearcher
         return maxIdx;
     }
 
+    /// <summary>
+    /// Adds virtual loss to prevent multiple threads from selecting the same path.
+    /// This improves parallel search efficiency by encouraging exploration diversity.
+    /// </summary>
+    /// <param name="parent">Parent node to add virtual loss to</param>
+    /// <param name="childEdge">Child edge to add virtual loss to</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static void AddVirtualLoss(Node parent, ref Edge childEdge)
     {
@@ -624,6 +822,13 @@ internal class PUCTSearcher
         Interlocked.Add(ref childEdge.VisitCount, VirtualLoss);
     }
 
+    /// <summary>
+    /// Updates node statistics after a simulation, removing virtual loss and adding the
+    /// backup value to the edge's value sum.
+    /// </summary>
+    /// <param name="parent">Parent node to update</param>
+    /// <param name="childEdge">Child edge to update</param>
+    /// <param name="value">Value to back up through the edge</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static void UpdateNodeStats(Node parent, ref Edge childEdge, double value)
     {
@@ -635,6 +840,12 @@ internal class PUCTSearcher
         AtomicOperations.Add(ref childEdge.ValueSum, value);
     }
 
+    /// <summary>
+    /// Updates statistics for pass nodes (nodes where a pass move was made).
+    /// </summary>
+    /// <param name="parent">Parent node to update</param>
+    /// <param name="childEdge">Child edge to update</param>
+    /// <param name="reward">Reward value to add</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static void UpdatePassNodeStats(Node parent, ref Edge childEdge, double reward)
     {
@@ -643,6 +854,12 @@ internal class PUCTSearcher
         AtomicOperations.Add(ref childEdge.ValueSum, reward);
     }
 
+    /// <summary>
+    /// Extracts the Principal Variation (PV) - the sequence of best moves from the search tree.
+    /// </summary>
+    /// <param name="node">Node to start extracting PV from</param>
+    /// <param name="prevMove">Previous move to include in the PV</param>
+    /// <returns>Sequence of moves representing the principal variation</returns>
     static IEnumerable<BoardCoordinate> GetPV(Node? node, BoardCoordinate prevMove = BoardCoordinate.Null)
     {
         if (prevMove != BoardCoordinate.Null)
@@ -657,6 +874,12 @@ internal class PUCTSearcher
             yield return move;
     }
 
+    /// <summary>
+    /// Selects the best child node for move selection (not exploration).
+    /// Prioritizes proven wins, avoids proven losses, and selects based on visit count and reward.
+    /// </summary>
+    /// <param name="parent">Parent node to select best child from</param>
+    /// <returns>Index of the best child node</returns>
     static int SelectBestChildNode(Node parent)
     {
         Debug.Assert(parent.Edges is not null);
@@ -681,6 +904,12 @@ internal class PUCTSearcher
         return maxIdx;
     }
 
+    /// <summary>
+    /// Converts an EdgeLabel to the corresponding GameResult.
+    /// </summary>
+    /// <param name="label">Edge label to convert</param>
+    /// <returns>Corresponding game result</returns>
+    /// <exception cref="NotImplementedException">Thrown for unknown edge labels</exception>
     static GameResult EdgeLabelToGameResult(EdgeLabel label)
     {
         return label switch
@@ -693,6 +922,11 @@ internal class PUCTSearcher
         };
     }
 
+    /// <summary>
+    /// Determines the game outcome from a terminal position.
+    /// </summary>
+    /// <param name="state">Terminal game state</param>
+    /// <returns>Outcome flag (OutcomeWin, OutcomeLoss, or OutcomeDraw)</returns>
     static int GetOutcome(ref State state)
     {
         Debug.Assert(state.Position.IsGameOver);
