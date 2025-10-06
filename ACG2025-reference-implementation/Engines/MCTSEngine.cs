@@ -91,11 +91,7 @@ internal class MCTSEngine : Engine
     }
 
     /// <inheritdoc/>
-    public override void SetMainTime(DiscColor color, int mainTimeMs)
-    {
-        ref TimeControl timeControl = ref _timeControls[(int)color];
-        timeControl.MainTimeMs = mainTimeMs;
-    }
+    public override void SetMainTime(DiscColor color, int mainTimeMs) => _timeControls[(int)color].MainTimeMs = mainTimeMs;
 
     /// <inheritdoc/>
     public override void SetByoyomi(DiscColor color, int byoyomiMs) => _timeControls[(int)color].ByoyomiMs = byoyomiMs;

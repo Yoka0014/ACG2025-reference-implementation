@@ -3,7 +3,7 @@
     "ACG2025-reference-implementation": {
       "commandName": "Project",
       "commandLineArgs": "value_func_params.bin",
-      "workingDirectory": "C:\\Users\\sudok\\source\\repos\\ACG2025-reference-implementation\\DebugWorkDir"
+      "workingDirectory": "/Users/yoka/Documents/repos/ACG2025-reference-implementation/DebugWorkDir/"
     }
   }
 }

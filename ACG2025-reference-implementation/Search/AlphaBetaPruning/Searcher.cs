@@ -197,6 +197,8 @@ internal class Searcher(ValueFunction valueFunc, long ttSizeBytes)
         return true;
     }
 
+    public void Stop() => _suspendFlag = true;
+
     public void SetRoot(ref Position pos)
     {
         if (_rootPos.HasValue)

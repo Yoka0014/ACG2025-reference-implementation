@@ -23,19 +23,19 @@ internal struct TimeControl
     /// The basic thinking time available to the player.
     /// </summary>
     public int MainTimeMs { get; set; }
-    
+
     /// <summary>
     /// Byoyomi time in milliseconds.
     /// The time limit per move after main time is exhausted.
     /// </summary>
     public int ByoyomiMs { get; set; }
-    
+
     /// <summary>
     /// Increment time in milliseconds.
     /// Time added after each move (Fischer system).
     /// </summary>
     public int IncrementMs { get; set; }
-    
+
     /// <summary>
     /// Number of stones in byoyomi.
     /// The number of moves that must be made within byoyomi time.
