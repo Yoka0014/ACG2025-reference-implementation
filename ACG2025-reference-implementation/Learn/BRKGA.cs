@@ -159,6 +159,12 @@ internal struct Individual : IComparable<Individual>
         Fitness = BitConverter.ToSingle(buffer);
     }
 
+    public readonly void CopyTo(ref Individual dest)
+    {
+        dest.Fitness = Fitness;
+        Buffer.BlockCopy(Chromosome, 0, dest.Chromosome, 0, sizeof(float) * Chromosome.Length);
+    }
+
     /// <summary>
     /// Serializes this individual to the specified stream.
     /// Writes chromosome length, chromosome data, and fitness value in binary format.
@@ -178,7 +184,7 @@ internal struct Individual : IComparable<Individual>
     /// </summary>
     /// <param name="other">The individual to compare with</param>
     /// <returns>Negative value if this individual has lower fitness, positive if higher, zero if equal</returns>
-    public readonly int CompareTo(Individual other) => Math.Sign(other.Fitness - Fitness);
+    public readonly int CompareTo(Individual other) => other.Fitness.CompareTo(Fitness);
 
     /// <summary>
     /// Loads a population pool from a binary file.
@@ -189,8 +195,7 @@ internal struct Individual : IComparable<Individual>
     /// <remarks>
     /// File format:
     /// - offset 0: LABEL (15 bytes)
-    /// - offset 15: reserved (8 bytes)
-    /// - offset 23: POPULATION_SIZE (4 bytes)
+    /// - offset 15: POPULATION_SIZE (4 bytes)
     /// - offset 27: INDIVIDUAL[0] data
     /// - ...
     /// </remarks>
@@ -354,7 +359,7 @@ internal class BRKGA<WeightType> where WeightType : unmanaged, IFloatingPointIee
     /// <param name="testData">Test dataset for fitness evaluation</param>
     /// <param name="numGenerations">Number of generations to evolve</param>
     public void Train(GameDataset trainData, GameDataset testData, int numGenerations)
-        => Train([.. Enumerable.Range(0, _config.PopulationSize).Select(_ => new Individual(Constants.NumCells * _numNTuples, _rand))], trainData, testData, numGenerations, Console.OpenStandardOutput());
+        => Train([.. Enumerable.Range(0, _config.PopulationSize).Select(_ => new Individual(Constants.NumCells * _numNTuples, _rand))], trainData, testData, numGenerations, Stream.Null);
 
     /// <summary>
     /// Trains the BRKGA starting from a population loaded from a file.
@@ -364,7 +369,7 @@ internal class BRKGA<WeightType> where WeightType : unmanaged, IFloatingPointIee
     /// <param name="testData">Test dataset for fitness evaluation</param>
     /// <param name="numGenerations">Number of generations to evolve</param>
     public void Train(string poolPath, GameDataset trainData, GameDataset testData, int numGenerations)
-        => Train(Individual.LoadPoolFromFile(poolPath), trainData, testData, numGenerations, Console.OpenStandardOutput());
+        => Train(Individual.LoadPoolFromFile(poolPath), trainData, testData, numGenerations, Stream.Null);
 
     /// <summary>
     /// Trains the BRKGA with the specified initial population and logging stream.
@@ -378,8 +383,8 @@ internal class BRKGA<WeightType> where WeightType : unmanaged, IFloatingPointIee
     {
         _logger = new StreamWriter(logStream);
 
-        Array.Copy(initialPool, _pool, _pool.Length);
-        Array.Copy(initialPool, _nextPool, _nextPool.Length);
+        CopyPool(initialPool, _pool);
+        CopyPool(initialPool, _nextPool);
 
         for (var i = 0; i < _pool.Length; i++)
             _pool[i].Fitness = float.NegativeInfinity;
@@ -398,7 +403,7 @@ internal class BRKGA<WeightType> where WeightType : unmanaged, IFloatingPointIee
     {
         for (var gen = 0; gen < numGenerations; gen++)
         {
-            Console.WriteLine($"Generation: {gen}");
+            _logger?.WriteLine($"Generation: {gen}");
 
             EvaluatePool(trainData, testData);
 
@@ -407,29 +412,29 @@ internal class BRKGA<WeightType> where WeightType : unmanaged, IFloatingPointIee
                                  nonMutants[nonMutants.Length / 2].Fitness, nonMutants.Average(p => p.Fitness)));
 
             var (best, worst, median, average) = _fitnessHistory[^1];
-            Console.WriteLine($"\nBestFitness: {best}");
-            Console.WriteLine($"WorstFitness: {worst}");
-            Console.WriteLine($"MedianFitness: {median}");
-            Console.WriteLine($"AverageFitness: {average}");
+            _logger?.WriteLine($"\nBestFitness: {best}");
+            _logger?.WriteLine($"WorstFitness: {worst}");
+            _logger?.WriteLine($"MedianFitness: {median}");
+            _logger?.WriteLine($"AverageFitness: {average}");
 
             Individual.SavePoolAt(_pool, string.Format(_poolPath, gen));
             SaveFitnessHistory();
 
-            Console.WriteLine("Generate individuals for next generation.");
+            _logger?.WriteLine("Generate individuals for next generation.");
 
             var elites = _pool.AsSpan(0, _numElites);
             var nonElites = _pool.AsSpan(_numElites);
-            elites.CopyTo(_nextPool);
+            CopyPool(elites, _nextPool);
 
             GenerateChildren(ref elites, ref nonElites);
             GenerateMutants();
 
             (_pool, _nextPool) = (_nextPool, _pool);
 
-            Console.WriteLine();
+            _logger?.WriteLine();
         }
 
-        Console.WriteLine("Final evaluation.");
+        _logger?.WriteLine("Final evaluation.");
         EvaluatePool(trainData, testData);
     }
 
@@ -439,7 +444,7 @@ internal class BRKGA<WeightType> where WeightType : unmanaged, IFloatingPointIee
     /// </summary>
     void SaveFitnessHistory()
     {
-        // Python + matplotlibによる可視化を容易にするため、Pythonのリスト形式で保存。
+        // Save in Python list format for easy visualization with Python + matplotlib.
         var bestSb = new StringBuilder("[");
         var worstSb = new StringBuilder("[");
         var medianSb = new StringBuilder("[");
@@ -478,14 +483,14 @@ internal class BRKGA<WeightType> where WeightType : unmanaged, IFloatingPointIee
     /// <param name="testData">Test dataset used for final fitness calculation</param>
     void EvaluatePool(GameDataset trainData, GameDataset testData)
     {
-        Console.WriteLine("Start evaluation.");
+        _logger?.WriteLine("Start evaluation.");
         var count = 0;
         Parallel.For(0, _pool.Length, _parallelOptions, i =>
         {
             if (float.IsNegativeInfinity(_pool[i].Fitness))
                 EvaluateIndividual(ref _pool[i], trainData, testData, i);
             Interlocked.Increment(ref count);
-            Console.WriteLine($"{count} individuals were evaluated({count * 100.0 / _config.PopulationSize:f2}%).");
+            _logger?.WriteLine($"{count} individuals were evaluated({count * 100.0 / _config.PopulationSize:f2}%).");
         });
         Array.Sort(_pool);
     }
@@ -514,7 +519,8 @@ internal class BRKGA<WeightType> where WeightType : unmanaged, IFloatingPointIee
     /// <param name="nonElites">Span of non-elite individuals</param>
     void GenerateChildren(ref Span<Individual> elites, ref Span<Individual> nonElites)
     {
-        var children = _nextPool.AsSpan(_numElites);
+        var numChildren = _config.PopulationSize - _numElites - _numMutants;
+        var children = _nextPool.AsSpan(_numElites, numChildren);
         for (var i = 0; i < children.Length; i++)
             Crossover(ref elites[_rand.Next(elites.Length)], ref nonElites[_rand.Next(nonElites.Length)], ref children[i]);
     }
@@ -552,6 +558,12 @@ internal class BRKGA<WeightType> where WeightType : unmanaged, IFloatingPointIee
         var slTrainer = new SupervisedTrainer<WeightType>($"INDV_{id}", valueFunc, _slConfig, Stream.Null);
         slTrainer.Train(trainData, [], saveWeights: false, saveLossHistory: false);
         individual.Fitness = float.CreateChecked(WeightType.One / CalculateLoss(valueFunc, testData));
+    }
+
+    static void CopyPool(Span<Individual> src, Span<Individual> dest)
+    {
+        for (var i = 0; i < src.Length; i++)
+            src[i].CopyTo(ref dest[i]);
     }
 
     /// <summary>
