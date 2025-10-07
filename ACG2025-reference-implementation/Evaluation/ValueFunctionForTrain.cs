@@ -80,7 +80,7 @@ internal class ValueFunctionForTrain<WeightType> where WeightType : unmanaged, I
     /// </summary>
     /// <param name="nTupleManager">The n-tuple manager that defines the n-tuples</param>
     /// <param name="numMovesPerPhase">The number of moves per phase</param>
-    public ValueFunctionForTrain(NTupleManager nTupleManager, int numMovesPerPhase)
+    public ValueFunctionForTrain(NTupleManager nTupleManager, int numMovesPerPhase = NumInitialCells)
     {
         NumMovesPerPhase = numMovesPerPhase;
         NumPhases = (NumCells - 4) / numMovesPerPhase;

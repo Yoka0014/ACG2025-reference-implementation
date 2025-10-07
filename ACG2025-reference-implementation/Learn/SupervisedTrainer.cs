@@ -118,7 +118,7 @@ internal class SupervisedTrainer<WeightType> where WeightType : unmanaged, IFloa
     /// <summary>List of loss history</summary>
     readonly List<(double trainLoss, double testLoss)> _lossHistory = [];
     /// <summary>Overfitting counter</summary>
-    int overfittingCount;
+    int _overfittingCount;
     /// <summary>Parallel processing options</summary>
     ParallelOptions? _parallelOptions;
     /// <summary>Epsilon value for numerical calculations</summary>
@@ -205,7 +205,7 @@ internal class SupervisedTrainer<WeightType> where WeightType : unmanaged, IFloa
         }
 
         _prevTrainLoss = _prevTestLoss = double.PositiveInfinity;
-        overfittingCount = 0;
+        _overfittingCount = 0;
 
         PrintLabel();
         _logger.WriteLine("Start training.\n");
@@ -301,7 +301,7 @@ internal class SupervisedTrainer<WeightType> where WeightType : unmanaged, IFloa
         var testLossDiff = testLoss - _prevTestLoss;
         if (testLossDiff > _config.Epsilon)
         {
-            if (++overfittingCount > _config.Patience)
+            if (++_overfittingCount > _config.Patience)
             {
                 _logger.WriteLine("early stopping.");
                 return false;
@@ -309,7 +309,7 @@ internal class SupervisedTrainer<WeightType> where WeightType : unmanaged, IFloa
         }
         else
         {
-            overfittingCount = 0;
+            _overfittingCount = 0;
         }
 
         if (Math.Abs(trainLossDiff) < _config.Epsilon)
