@@ -19,51 +19,48 @@ using ACG2025_reference_implementation.Search.MCTS;
 /// </summary>
 internal record class SelfPlayTrainerConfig
 {
-    /// <summary>
-    /// Number of parallel actors for self-play data generation. Defaults to the number of processor cores.
-    /// </summary>
-    public int NumActors { get; init; } = Environment.ProcessorCount;
-    
+    public int NumThreads { get; init; } = Environment.ProcessorCount;
+
     /// <summary>
     /// Number of moves at the beginning of each game where moves are sampled from the visit count distribution.
     /// </summary>
     public int NumSamplingMoves { get; init; } = 30;
-    
+
     /// <summary>
     /// Number of MCTS simulations to perform for each move decision.
     /// </summary>
     public int NumSimulations { get; init; } = 800;
-    
+
     /// <summary>
     /// Alpha parameter for the Dirichlet noise added to the root node during MCTS search.
     /// </summary>
     public double RootDirichletAlpha { get; init; } = 0.3;
-    
+
     /// <summary>
     /// Fraction of exploration noise to add to the root node during MCTS search.
     /// </summary>
     public double RootExplorationFraction { get; init; } = 0.25;
-    
+
     /// <summary>
     /// Number of games to generate in each batch for training data.
     /// </summary>
     public int NumGamesInBatch { get; init; } = 500_000;
-    
+
     /// <summary>
     /// Number of training epochs for each iteration.
     /// </summary>
     public int NumEpoch { get; init; } = 200;
-    
+
     /// <summary>
     /// Whether to start the first iteration with random play data instead of self-play data.
     /// </summary>
     public bool StartWithRandomTrainData { get; init; } = true;
-    
+
     /// <summary>
     /// Learning rate for the supervised training phase.
     /// </summary>
     public double LearningRate { get; init; } = (double)0.001;
-    
+
     /// <summary>
     /// Base filename for saving the trained value function weights.
     /// </summary>
@@ -86,22 +83,22 @@ internal class SelfPlayTrainer<WeightType> where WeightType : unmanaged, IFloati
     /// Configuration for the self-play trainer.
     /// </summary>
     readonly SelfPlayTrainerConfig _config;
-    
+
     /// <summary>
     /// Thread-safe queue containing the training dataset items generated from self-play games.
     /// </summary>
     readonly ConcurrentQueue<GameDatasetItem> _trainDataSet = new();
-    
+
     /// <summary>
     /// Random number generator used for move sampling and other probabilistic decisions.
     /// </summary>
     readonly Random _rand;
-    
+
     /// <summary>
     /// Array of random number generators, one for each actor to ensure thread safety.
     /// </summary>
     readonly Random[] _rands;
-    
+
     /// <summary>
     /// Stream writer for logging training progress and statistics.
     /// </summary>
@@ -132,7 +129,7 @@ internal class SelfPlayTrainer<WeightType> where WeightType : unmanaged, IFloati
     {
         _config = config;
         _rand = rand;
-        _rands = [.. Enumerable.Range(0, config.NumActors).Select(_ => new Random(rand.Next()))];
+        _rands = [.. Enumerable.Range(0, config.NumThreads).Select(_ => new Random(rand.Next()))];
         _logger = new StreamWriter(logStream) { AutoFlush = false };
     }
 
@@ -162,7 +159,7 @@ internal class SelfPlayTrainer<WeightType> where WeightType : unmanaged, IFloati
                     LearningRate = _config.LearningRate,
                     NumEpoch = _config.NumEpoch,
                     WeightsFileName = $"{_config.WeightsFileName}_{i}"
-                }).Train([.. _trainDataSet], []);
+                }).Train([.. _trainDataSet], [], _config.NumThreads);
         }
     }
 
@@ -186,7 +183,7 @@ internal class SelfPlayTrainer<WeightType> where WeightType : unmanaged, IFloati
     {
         _trainDataSet.Clear();
 
-        var numActors = _config.NumActors;
+        var numActors = _config.NumThreads;
         var quantValueFunc = ValueFunction.CreateFromTrainedValueFunction(valueFunc);
 
         var searchers = Enumerable.Range(0, numActors).Select(_ => new PUCTSearcher(quantValueFunc)
@@ -198,7 +195,7 @@ internal class SelfPlayTrainer<WeightType> where WeightType : unmanaged, IFloati
         var numGamesPerActor = _config.NumGamesInBatch / numActors;
 
         _logger.WriteLine("Start self-play.");
-        _logger.WriteLine($"The number of actors: {_config.NumActors}");
+        _logger.WriteLine($"The number of actors: {_config.NumThreads}");
         _logger.WriteLine($"the number of MCTS simulations: {_config.NumSimulations}");
         _logger.Flush();
 
