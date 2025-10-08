@@ -120,7 +120,7 @@ internal class SelfPlayTrainer<WeightType> where WeightType : unmanaged, IFloati
     /// </summary>
     /// <param name="config">The configuration for the self-play trainer.</param>
     /// <param name="rand">The random number generator to use.</param>
-    public SelfPlayTrainer(SelfPlayTrainerConfig config, Random rand) : this(config, rand, Stream.Null) { }
+    public SelfPlayTrainer(SelfPlayTrainerConfig config, Random rand) : this(config, rand, Console.OpenStandardOutput()) { }
 
     /// <summary>
     /// Initializes a new instance of the SelfPlayTrainer with the specified configuration, random generator, and log stream.
@@ -307,7 +307,7 @@ internal class SelfPlayTrainer<WeightType> where WeightType : unmanaged, IFloati
                 continue;
             }
 
-            searcher.Search(_config.NumSimulations);
+            searcher.SearchOnSingleThread(_config.NumSimulations);
 
             Move? selectedMove;
 

@@ -290,10 +290,12 @@ internal class SupervisedTrainer<WeightType> where WeightType : unmanaged, IFloa
         var testLoss = CalculateLoss(testData);
 
         _logger.WriteLine($"test loss: {testLoss}");
+        _logger.Flush();
 
         var (trainLoss, numSamples) = CalculateGradients(trainData);
 
         _logger.WriteLine($"train loss: {trainLoss}");
+        _logger.Flush();
 
         _lossHistory.Add((trainLoss, testLoss));
 

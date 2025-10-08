@@ -460,11 +460,11 @@ internal class PUCTSearcher
     /// Useful for testing and debugging purposes.
     /// </summary>
     /// <param name="numSimulations">Number of simulations to perform</param>
-    public void SearchOnSingleThread(uint numSimulations)
+    public void SearchOnSingleThread(long numSimulations)
     {
         var rootState = new State(_rootPos, _valueFunc.NTupleManager);
         var state = new State(_valueFunc.NTupleManager);
-        for (var i = 0u; i < numSimulations && _rootEdgeLabel == EdgeLabel.NotProved; i++)
+        for (var i = 0L; i < numSimulations && _rootEdgeLabel == EdgeLabel.NotProved; i++)
         {
             rootState.CopyTo(ref state);
             VisitRootNode(0, ref state);
