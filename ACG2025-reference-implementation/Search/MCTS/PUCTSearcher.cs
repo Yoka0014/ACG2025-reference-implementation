@@ -24,22 +24,22 @@ internal static class PUCTConstants
 {
     /// <summary>Exploration factor in the PUCT formula</summary>
     public const float PUCTFactor = 1.0f;
-    
+
     /// <summary>Virtual loss added during parallel search to avoid overexploring the same path</summary>
     public const uint VirtualLoss = 1;
 
     /// <summary>Bit flag representing a winning outcome</summary>
     public const int OutcomeWin = 1;
-    
+
     /// <summary>Bit flag representing a losing outcome</summary>
     public const int OutcomeLoss = 1 << 1;
-    
+
     /// <summary>Bit flag representing a draw outcome</summary>
     public const int OutcomeDraw = 1 << 2;
-    
+
     /// <summary>Maps outcome flags to reward values (Win=1.0, Loss=0.0, Draw=0.5)</summary>
     public static ReadOnlySpan<float> OutcomeToReward => [float.NaN, 1.0f, 0.0f, float.NaN, 0.5f];
-    
+
     /// <summary>Maps outcome from current player's perspective to opponent's perspective</summary>
     public static ReadOnlySpan<int> ToOpponentOutcome => [0, OutcomeLoss, OutcomeWin, 0, OutcomeDraw];
 }
@@ -53,19 +53,19 @@ internal class MoveEval(IEnumerable<BoardCoordinate> pv) : IComparable<MoveEval>
 {
     /// <summary>The move being evaluated</summary>
     public BoardCoordinate Move { get; init; }
-    
+
     /// <summary>Proportion of search effort spent on this move (0.0 to 1.0)</summary>
     public double Effort { get; init; }
-    
+
     /// <summary>Number of simulations performed for this move</summary>
     public long SimulationCount { get; init; }
-    
+
     /// <summary>Expected reward (Q-value) for this move</summary>
     public double ExpectedReward { get; init; }
-    
+
     /// <summary>Proven game result for this move, if any</summary>
     public GameResult GameResult { get; init; }
-    
+
     /// <summary>Gets the principal variation (best line of play) from this move</summary>
     public ReadOnlySpan<BoardCoordinate> PV => _pv;
 
@@ -141,10 +141,10 @@ internal class SearchResult(MoveEval rootEval, IEnumerable<MoveEval> childEvals)
 {
     /// <summary>Evaluation result for the root position</summary>
     public MoveEval RootEval { get; } = rootEval;
-    
+
     /// <summary>Evaluation results for all child moves, sorted by priority</summary>
     public ReadOnlySpan<MoveEval> ChildEvals => _childEvals;
-    
+
     readonly MoveEval[] _childEvals = [.. childEvals];
 }
 
@@ -165,7 +165,7 @@ internal class PUCTSearcher
 
     /// <summary>Gets or sets the Dirichlet alpha parameter for root node exploration noise</summary>
     public double RootDirchletAlpha { get; set; } = 0.3;
-    
+
     /// <summary>Gets or sets the fraction of root prior probability to replace with Dirichlet noise</summary>
     public double RootExplorationFraction { get; set; } = 0.25;
 
@@ -174,34 +174,34 @@ internal class PUCTSearcher
 
     /// <summary>Root node of the search tree</summary>
     Node? _root;
-    
+
     /// <summary>Proof label for the root edge</summary>
     EdgeLabel _rootEdgeLabel;
-    
+
     /// <summary>Game position at the root of the search tree</summary>
     Position _rootPos;
 
     /// <summary>Flag indicating whether search is currently running</summary>
     volatile bool _isSearching;
-    
+
     /// <summary>Cancellation token source for stopping search</summary>
     CancellationTokenSource? _cts;
 
     /// <summary>Timestamp when search started (in milliseconds)</summary>
     int _searchStartTimeMs = 0;
-    
+
     /// <summary>Timestamp when search ended (in milliseconds)</summary>
     int _searchEndTimeMs = 0;
 
     /// <summary>Number of threads to use for parallel search</summary>
     int _numThreads = Environment.ProcessorCount;
-    
+
     /// <summary>Node count per thread for tracking search statistics</summary>
     long[] _nodeCountPerThread;
-    
+
     /// <summary>Maximum number of simulations to perform</summary>
     long _maxSimulationCount;
-    
+
     /// <summary>Current number of simulations performed</summary>
     long _simulationCount;
 
@@ -226,6 +226,25 @@ internal class PUCTSearcher
 
     /// <summary>Gets the nodes per second rate of the search</summary>
     public double Nps => NodeCount / (SearchElapsedMs * 1.0e-3);
+
+    /// <summary>
+    /// Gets the root value representing the expected reward for the current player at the root position.
+    /// Returns the proven outcome value if the position is solved, otherwise returns the expected reward from MCTS evaluation.
+    /// Returns NaN if no root node exists.
+    /// </summary>
+    public double RootValue
+    {
+        get
+        {
+            if (_root is null)
+                return double.NaN;
+
+            if (_rootEdgeLabel != EdgeLabel.NotProved)
+                return OutcomeToReward[(int)(_rootEdgeLabel ^ EdgeLabel.Proved)];
+
+            return _root.ExpectedReward;
+        }
+    }
 
     /// <summary>
     /// Gets or sets the number of threads to use for parallel search.
@@ -407,7 +426,7 @@ internal class PUCTSearcher
     /// <param name="numSimulations">Maximum number of simulations to perform</param>
     /// <param name="timeLimitCs">Time limit in centiseconds</param>
     /// <exception cref="InvalidOperationException">Thrown if root state is not initialized</exception>
-    public void Search(long numSimulations, int timeLimitCs)
+    public void Search(long numSimulations, int timeLimitCs = int.MaxValue)
     {
         if (_root is null)
             throw new InvalidOperationException("The root state was not initialized.");
