@@ -324,7 +324,8 @@ internal class Searcher(ValueFunction valueFunc, long ttSizeBytes)
 
     readonly ValueFunction _valueFunc = valueFunc;
     TranspositionTable _tt = new(ttSizeBytes);
-    Position? _rootPos;
+    Position _rootPos;
+    bool _rootWasSet = false;
     long _nodeCount = 0;
     volatile bool _isSearching = false;
     volatile bool _suspendFlag = false;
@@ -356,9 +357,10 @@ internal class Searcher(ValueFunction valueFunc, long ttSizeBytes)
     /// <param name="pos">The position to set as the search root</param>
     public void SetRoot(ref Position pos)
     {
-        if (_rootPos.HasValue)
+        if (_rootWasSet)
             _tt.Clear();
         _rootPos = pos;
+        _rootWasSet = true;
     }
 
     /// <summary>
@@ -369,14 +371,14 @@ internal class Searcher(ValueFunction valueFunc, long ttSizeBytes)
     /// <exception cref="InvalidOperationException">Thrown if no root position has been set</exception>
     public bool TryUpdateRoot(BoardCoordinate moveCoord)
     {
-        if (!_rootPos.HasValue)
+        if (!_rootWasSet)
             throw new InvalidOperationException("Root position has not been set.");
 
-        if (!_rootPos.Value.IsLegalMoveAt(moveCoord))
+        if (!_rootPos.IsLegalMoveAt(moveCoord))
             return false;
 
         var move = new Move(moveCoord);
-        _rootPos.Value.CalcFlip(ref move);
+        _rootPos.CalcFlip(ref move);
         UpdateRoot(ref move);
         return true;
     }
@@ -389,13 +391,13 @@ internal class Searcher(ValueFunction valueFunc, long ttSizeBytes)
     /// <exception cref="InvalidOperationException">Thrown if no root position has been set</exception>
     public void UpdateRoot(ref Move move)
     {
-        if (!_rootPos.HasValue)
+        if (!_rootWasSet)
             throw new InvalidOperationException("Root position has not been set.");
 
         if (move.Coord == BoardCoordinate.Pass)
-            _rootPos.Value.Pass();
+            _rootPos.Pass();
         else
-            _rootPos.Value.Update(ref move);
+            _rootPos.Update(ref move);
 
         _tt.IncGen();
     }
@@ -444,7 +446,7 @@ internal class Searcher(ValueFunction valueFunc, long ttSizeBytes)
     /// <exception cref="InvalidOperationException">Thrown if no root position has been set</exception>
     public SearchResult Search(int maxDepth)
     {
-        if (!_rootPos.HasValue)
+        if (!_rootWasSet)
             throw new InvalidOperationException("Root position has not been set.");
 
         _suspendFlag = false;
@@ -454,7 +456,7 @@ internal class Searcher(ValueFunction valueFunc, long ttSizeBytes)
         SearchResult res;
         var pv = new PV();
         int depth;
-        var rootPos = _rootPos.Value;
+        var rootPos = _rootPos;
         var state = new State(_valueFunc.NTupleManager);
         state.Init(ref rootPos);
 
@@ -1014,14 +1016,14 @@ internal class Searcher(ValueFunction valueFunc, long ttSizeBytes)
         for (var i = 0; i < pv.Count; i++)
             pvList.Add(pv[i]);
 
-        Debug.Assert(_rootPos is not null);
+        Debug.Assert(_rootWasSet);
 
         // When search was cut short by transposition table before reaching leaf nodes,
         // try to reconstruct the remaining PV from the transposition table.
         // Note: This may not always succeed if the TT is small or after long searches.
         if (pv.CutByTT)
         {
-            Position pos = _rootPos.Value;
+            Position pos = _rootPos;
             pv.UpdatePositionAlongPV(ref pos);
             _tt.ProbePV(ref pos, pvList, maxDepth - pv.Count);
         }
