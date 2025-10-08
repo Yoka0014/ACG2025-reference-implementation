@@ -510,7 +510,7 @@ internal class Searcher(ValueFunction valueFunc, long ttSizeBytes)
                 SearchWithTT<Endgame, NotAfterPass>(ref state, -ValueInf, ValueInf, ref pv, depth, ref _nodeCount, ref stopFlag);
 
             if(stopFlag)
-                break;;
+                break;
 
             ref var entry = ref _tt.GetEntry(ref state.Position, out var hit);
 
@@ -650,21 +650,21 @@ internal class Searcher(ValueFunction valueFunc, long ttSizeBytes)
             if (depth > MidgameShallowDepth)
             {
                 if (state.Position.EmptyCellCount > EndgameDepth)
-                    return SearchWithTT<Phase, AfterPass>(ref state, alpha, beta, ref pv, depth, ref nodeCount, ref stopFlag);
+                    return SearchWithTT<Phase, NotAfterPass>(ref state, alpha, beta, ref pv, depth, ref nodeCount, ref stopFlag);
                 else
-                    return SearchWithTT<Endgame, AfterPass>(ref state, alpha, beta, ref pv, depth, ref nodeCount, ref stopFlag);
+                    return SearchWithTT<Endgame, NotAfterPass>(ref state, alpha, beta, ref pv, depth, ref nodeCount, ref stopFlag);
             }
             else
             {
-                return SearchShallow<Phase, AfterPass>(ref state, alpha, beta, ref pv, depth, ref nodeCount, ref stopFlag);
+                return SearchShallow<Phase, NotAfterPass>(ref state, alpha, beta, ref pv, depth, ref nodeCount, ref stopFlag);
             }
         }
         else
         {
             if (depth > EndgameShallowDepth)
-                return SearchWithTT<Endgame, AfterPass>(ref state, alpha, beta, ref pv, depth, ref nodeCount, ref stopFlag);
+                return SearchWithTT<Endgame, NotAfterPass>(ref state, alpha, beta, ref pv, depth, ref nodeCount, ref stopFlag);
             else
-                return SearchShallow<Endgame, AfterPass>(ref state, alpha, beta, ref pv, depth, ref nodeCount, ref stopFlag);
+                return SearchShallow<Endgame, NotAfterPass>(ref state, alpha, beta, ref pv, depth, ref nodeCount, ref stopFlag);
         }
     }
 
