@@ -359,6 +359,13 @@ internal class PUCTSearcher
     /// Selects a move randomly according to the visit count distribution.
     /// Moves with higher visit counts have higher probability of being selected.
     /// </summary>
+    /// <returns>The selected move, or null if no search tree exists</returns>
+    public Move? SelectMoveWithVisitCountDist() => SelectMoveWithVisitCountDist(Random.Shared);
+
+    /// <summary>
+    /// Selects a move randomly according to the visit count distribution.
+    /// Moves with higher visit counts have higher probability of being selected.
+    /// </summary>
     /// <param name="rand">Random number generator to use</param>
     /// <returns>The selected move, or null if no search tree exists</returns>
     public Move? SelectMoveWithVisitCountDist(Random rand)

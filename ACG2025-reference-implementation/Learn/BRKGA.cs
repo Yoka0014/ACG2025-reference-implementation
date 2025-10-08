@@ -378,6 +378,16 @@ internal class BRKGA<WeightType> where WeightType : unmanaged, IFloatingPointIee
     /// <param name="trainData">Training dataset for fitness evaluation</param>
     /// <param name="testData">Test dataset for fitness evaluation</param>
     /// <param name="numGenerations">Number of generations to evolve</param>
+    public void Train(Individual[] initialPool, GameDataset trainData, GameDataset testData, int numGenerations)
+        => Train(initialPool, trainData, testData, numGenerations, Stream.Null);
+
+    /// <summary>
+    /// Trains the BRKGA with the specified initial population and logging stream.
+    /// </summary>
+    /// <param name="initialPool">Initial population of individuals</param>
+    /// <param name="trainData">Training dataset for fitness evaluation</param>
+    /// <param name="testData">Test dataset for fitness evaluation</param>
+    /// <param name="numGenerations">Number of generations to evolve</param>
     /// <param name="logStream">Stream for logging training progress</param>
     public void Train(Individual[] initialPool, GameDataset trainData, GameDataset testData, int numGenerations, Stream logStream)
     {

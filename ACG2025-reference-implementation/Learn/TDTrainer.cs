@@ -120,9 +120,9 @@ internal class TDTrainer<WeightType> where WeightType : unmanaged, IFloatingPoin
     /// </summary>
     /// <param name="valueFunc">The value function to train</param>
     /// <param name="config">Training configuration parameters</param>
-    /// <param name="randSeed">Random seed for reproducibility (-1 for random seed)</param>
-    public TDTrainer(ValueFunctionForTrain<WeightType> valueFunc, TDTrainerConfig config, int randSeed = -1)
-    : this(valueFunc, config, Console.OpenStandardOutput(), randSeed) { }
+    /// <param name="rand">Random object</param>
+    public TDTrainer(ValueFunctionForTrain<WeightType> valueFunc, TDTrainerConfig config, Random rand)
+    : this(valueFunc, config, Console.OpenStandardOutput(), rand) { }
 
     /// <summary>
     /// Initializes a new instance of TDTrainer with custom output stream.
@@ -130,9 +130,9 @@ internal class TDTrainer<WeightType> where WeightType : unmanaged, IFloatingPoin
     /// <param name="valueFunc">The value function to train</param>
     /// <param name="config">Training configuration parameters</param>
     /// <param name="logStream">Output stream for logging</param>
-    /// <param name="randSeed">Random seed for reproducibility (-1 for random seed)</param>
-    public TDTrainer(ValueFunctionForTrain<WeightType> valueFunc, TDTrainerConfig config, Stream logStream, int randSeed = -1)
-    : this(string.Empty, valueFunc, config, logStream, randSeed) { }
+    /// <param name="rand">Random object</param>
+    public TDTrainer(ValueFunctionForTrain<WeightType> valueFunc, TDTrainerConfig config, Stream logStream, Random rand)
+    : this(string.Empty, valueFunc, config, logStream, rand) { }
 
     /// <summary>
     /// Initializes a new instance of TDTrainer with label and console output.
@@ -141,7 +141,10 @@ internal class TDTrainer<WeightType> where WeightType : unmanaged, IFloatingPoin
     /// <param name="valueFunc">The value function to train</param>
     /// <param name="config">Training configuration parameters</param>
     public TDTrainer(string label, ValueFunctionForTrain<WeightType> valueFunc, TDTrainerConfig config)
-    : this(label, valueFunc, config, Console.OpenStandardOutput()) { }
+    : this(label, valueFunc, config, Console.OpenStandardOutput(), Random.Shared) { }
+
+    public TDTrainer(string label, ValueFunctionForTrain<WeightType> valueFunc, TDTrainerConfig config, Stream logStream)
+    : this(label, valueFunc, config, logStream, Random.Shared) { }
 
     /// <summary>
     /// Initializes a new instance of TDTrainer with full customization.
@@ -150,8 +153,8 @@ internal class TDTrainer<WeightType> where WeightType : unmanaged, IFloatingPoin
     /// <param name="valueFunc">The value function to train</param>
     /// <param name="config">Training configuration parameters</param>
     /// <param name="logStream">Output stream for logging</param>
-    /// <param name="randSeed">Random seed for reproducibility (-1 for random seed)</param>
-    public TDTrainer(string label, ValueFunctionForTrain<WeightType> valueFunc, TDTrainerConfig config, Stream logStream, int randSeed = -1)
+    /// <param name="rand">Random object</param>
+    public TDTrainer(string label, ValueFunctionForTrain<WeightType> valueFunc, TDTrainerConfig config, Stream logStream, Random rand)
     {
         Label = label;
         _config = config;
@@ -168,7 +171,7 @@ internal class TDTrainer<WeightType> where WeightType : unmanaged, IFloatingPoin
         var capacity = (int)Math.Ceiling(Math.Log(config.HorizonCutFactor, config.EligibilityTraceFactor)) + 1;
         _pastStatesBuffer = new PastStatesBuffer(capacity, valueFunc.NTupleManager);
 
-        _rand = (randSeed >= 0) ? new Random(randSeed) : new Random(Random.Shared.Next());
+        _rand = rand;
 
         _logger = new StreamWriter(logStream) { AutoFlush = false };
     }
