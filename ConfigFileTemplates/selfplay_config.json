@@ -7,6 +7,6 @@
   "NumGamesInBatch": 500000,
   "NumEpoch": 200,
   "StartWithRandomTrainData": true,
-  "LearningRate": 1.0,
+  "LearningRate": 0.01,
   "WeightsFileName": "value_func_weights_sp"
 }

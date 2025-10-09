@@ -292,7 +292,7 @@ internal class SupervisedTrainer<WeightType> where WeightType : unmanaged, IFloa
         _logger.WriteLine($"test loss: {testLoss}");
         _logger.Flush();
 
-        var (trainLoss, numSamples) = CalculateGradients(trainData);
+        var trainLoss = CalculateGradients(trainData);
 
         _logger.WriteLine($"train loss: {trainLoss}");
         _logger.Flush();
@@ -320,7 +320,7 @@ internal class SupervisedTrainer<WeightType> where WeightType : unmanaged, IFloa
             return false;
         }
 
-        ApplyGradients(numSamples);
+        ApplyGradients();
 
         _prevTestLoss = testLoss;
         _prevTrainLoss = trainLoss;
@@ -373,7 +373,7 @@ internal class SupervisedTrainer<WeightType> where WeightType : unmanaged, IFloa
     /// </summary>
     /// <param name="dataset">The dataset to calculate gradients for</param>
     /// <returns>A tuple of total loss value and sample count</returns>
-    unsafe (double loss, int numSamples) CalculateGradients(GameDataset dataset)
+    unsafe double CalculateGradients(GameDataset dataset)
     {
         var numThreads = _parallelOptions!.MaxDegreeOfParallelism;
         var numDataPerThread = dataset.Length / numThreads;
@@ -390,7 +390,7 @@ internal class SupervisedTrainer<WeightType> where WeightType : unmanaged, IFloa
         lossSum += loss;
         countSum += count;
 
-        return (lossSum / countSum, countSum);
+        return lossSum / countSum;
     }
 
     /// <summary>
@@ -499,10 +499,10 @@ internal class SupervisedTrainer<WeightType> where WeightType : unmanaged, IFloa
     /// Aggregates gradients from all threads, then updates weights and biases with the applied learning rate.
     /// </summary>
     /// <param name="numSamples">Number of samples (used for gradient normalization)</param>
-    unsafe void ApplyGradients(int numSamples)
+    unsafe void ApplyGradients()
     {
         var numThreads = _parallelOptions!.MaxDegreeOfParallelism;
-        var eta = WeightType.CreateChecked(_config.LearningRate / numSamples);
+        var eta = WeightType.CreateChecked(_config.LearningRate);
 
         fixed (WeightType* wg = _weightGrads[0])
         {

@@ -22,6 +22,8 @@ using static PUCTConstants;
 /// </summary>
 internal static class PUCTConstants
 {
+    public const float Epsilon = 1.0e-6f;
+
     /// <summary>Exploration factor in the PUCT formula</summary>
     public const float PUCTFactor = 1.0f;
 
@@ -155,8 +157,6 @@ internal class SearchResult(MoveEval rootEval, IEnumerable<MoveEval> childEvals)
 /// </summary>
 internal class PUCTSearcher
 {
-    const float Epsilon = 1.0e-6f;
-
     /// <summary>Event fired when search results are updated during search</summary>
     public event EventHandler<SearchResult?> SearchResultUpdated = delegate { };
 

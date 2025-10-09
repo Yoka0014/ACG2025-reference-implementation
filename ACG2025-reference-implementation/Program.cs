@@ -1,9 +1,4 @@
-﻿//#define RL_SELFPLAY
-//#define OPTIMIZE_NTUPLE
-#define DECODE_POOL
-//#define DEV_TEST
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
