@@ -7,14 +7,16 @@
 
 ### 1. Overview
 
-This project is a reference implementation of the method proposed in the paper "Mastering Othello with genetic algorithm and reinforcement learning". The implementation is based on a method that optimizes Othello evaluation functions using N-Tuple Systems combined with Biased Random-Key Genetic Algorithm (BRKGA) and Temporal-Difference (TD) learning.
+This project is a reference implementation of the method proposed in the paper "Mastering Othello with genetic algorithm and reinforcement learning". The implementation presents an efficient learning method for Othello that requires no domain knowledge beyond the game rules and board symmetries.
 
-Specifically, it consists of the following two main components:
+The method combines genetic algorithm-based n-tuple optimization with self-play reinforcement learning to achieve strong gameplay performance. The key innovation is using a Biased Random-Key Genetic Algorithm (BRKGA) to optimize n-tuple structures while generating training data through self-play, eliminating the need for existing game records or domain-specific strategic knowledge.
 
-1.  **N-Tuple System Structure Optimization**: Using BRKGA to search for effective n-tuple combinations (sets of board coordinates) as features for evaluation functions. Each n-tuple structure is evaluated by training an evaluation function with that structure using TD learning, and its performance determines the fitness.
-2.  **Evaluation Function Parameter Learning**: Through self-play, TD(λ) method, a variant of TD learning, is used to learn the weights (parameters) of a given N-Tuple System.
+Specifically, it consists of the following two main phases:
 
-Using this implementation, you can reproduce the experiments described in the paper and build your own evaluation functions.
+1.  **N-Tuple Structure Optimization**: Using BRKGA to evolve optimal n-tuple shapes and combinations for feature extraction. Each individual in the genetic algorithm represents a set of spatially connected n-tuples, and fitness is defined as the reciprocal of the cross-entropy loss between the value function predictions and observed outcomes on test data, after training the value function using TD(λ) learning with that individual's n-tuples.
+2.  **Self-Play Reinforcement Learning**: After obtaining optimized n-tuples, the method further refines the value function parameters through AlphaZero-style self-play using Monte Carlo Tree Search (MCTS), generating 500,000 games per training cycle.
+
+The method achieves remarkable efficiency, completing training in approximately 38 hours on consumer hardware while achieving winning performance against strong Othello programs like Edax Level 10.
 
 ### 2. Directory and File Structure
 
@@ -23,13 +25,13 @@ The roles of the main directories and files in this project are as follows:
 -   `ACG2025-reference-implementation.sln`: Visual Studio solution file.
 -   `ACG2025-reference-implementation/`: Directory containing the project source code.
     -   `Program.cs`: Main entry point. The functionality (tool) executed is switched by symbols defined at build time.
-    -   `Engines/`: Game engines such as alpha-beta search and MCTS.
+    -   `Engines/`: Game engines including MCTS engine with PUCT algorithm and Alpha-Beta pruning engine with transposition table.
     -   `Evaluation/`: Classes related to evaluation functions.
-    -   `Learn/`: Implementation of machine learning algorithms such as TD learning, self-play, and N-Tuple optimization using BRKGA.
+    -   `Learn/`: Implementation of machine learning algorithms such as TD learning, self-play, and n-tuple optimization using BRKGA.
     -   `NTupleSystem/`: Classes for N-Tuple System structure and management.
     -   `Reversi/`: Basic game logic including Othello rules, board representation, and move generation.
     -   `Search/`: Implementation of search algorithms (alpha-beta search, MCTS).
-    -   `Protocols/`: Interfaces for communication between game engines and external GUIs, such as NBoard protocol.
+    -   `Protocols/`: Interfaces for communication between game engines and external GUIs, such as NBoard protocol for integration with the NBoard GUI application ( http://www.orbanova.com/nboard/ ).
     -   `Utils/`: Auxiliary utility classes.
 -   `ConfigFileTemplates/`: Templates for configuration files (`.json`) used by each tool. Copy these files to any working directory for use.
 
@@ -44,7 +46,7 @@ The following commands show how to build each tool:
   dotnet build -c Release -p:DefineConstants=OPTIMIZE_NTUPLE ACG2025-reference-implementation/ACG2025-reference-implementation.csproj
   ```
 
-- **Evaluation Function Parameter Learning with TD Learning (RL_SELFPLAY)**
+- **Self-Play Reinforcement Learning (RL_SELFPLAY)**
   ```sh
   dotnet build -c Release -p:DefineConstants=RL_SELFPLAY ACG2025-reference-implementation/ACG2025-reference-implementation.csproj
   ```
@@ -54,15 +56,25 @@ The following commands show how to build each tool:
   dotnet build -c Release -p:DefineConstants=DECODE_POOL ACG2025-reference-implementation/ACG2025-reference-implementation.csproj
   ```
 
+- **MCTS Engine (MCTS_ENGINE)**
+  ```sh
+  dotnet build -c Release -p:DefineConstants=MCTS_ENGINE ACG2025-reference-implementation/ACG2025-reference-implementation.csproj
+  ```
+
+- **Alpha-Beta Pruning Engine (ALPHA_BETA_ENGINE)**
+  ```sh
+  dotnet build -c Release -p:DefineConstants=ALPHA_BETA_ENGINE ACG2025-reference-implementation/ACG2025-reference-implementation.csproj
+  ```
+
 Upon successful build, an executable file `ACG2025-reference-implementation` with the specified functionality will be generated in the `ACG2025-reference-implementation/bin/Release/net8.0/` directory.
 
 ### 4. Tool Usage
 
-This implementation includes three main tools corresponding to the experiments in the paper. These tools are enabled by specifying appropriate symbols in the build commands mentioned above.
+This implementation includes three main tools plus two game engines for playing Reversi. These tools and engines are enabled by specifying appropriate symbols in the build commands mentioned above.
 
 #### 4.1. N-Tuple System Structure Optimization (OPTIMIZE_NTUPLE)
 
-This corresponds to the "N-Tuple System Structure Optimization" experiment in the paper. It uses BRKGA to search for optimal n-tuple structures.
+This tool uses BRKGA to search for optimal n-tuple structures.
 
 **Example Commands:**
 
@@ -83,7 +95,7 @@ This corresponds to the "N-Tuple System Structure Optimization" experiment in th
 ```
 
 **Arguments:**
-- `args[0]`: N-Tuple optimization overall configuration file (`ntuple_optimizer_config.json`)
+- `args[0]`: n-tuple optimization overall configuration file (`ntuple_optimizer_config.json`)
 - `args[1]`: BRKGA configuration file (`brkga_config.json`)
 - `args[2]`: TD learning configuration file (`td_config.json`)
 - `args[3]`: n-tuple size (e.g., `10`)
@@ -91,9 +103,9 @@ This corresponds to the "N-Tuple System Structure Optimization" experiment in th
 - `args[5]`: number of BRKGA generations (e.g., `100`)
 - `args[6]` (optional): pool file to resume search (`pool.bin`)
 
-#### 4.2. Evaluation Function Parameter Learning with TD Learning (RL_SELFPLAY)
+#### 4.2. Self-Play Reinforcement Learning (RL_SELFPLAY)
 
-This corresponds to the "Evaluation Function Parameter Learning with TD Learning" experiment in the paper. It uses self-play and TD(λ) method to learn parameters (weights) of evaluation functions with specific n-tuple structures.
+This tool uses AlphaZero-style self-play reinforcement learning with MCTS to learn parameters (weights) of evaluation functions with optimized n-tuple structures. It generates games through self-play using MCTS and optimizes the value function parameters by minimizing binary cross-entropy between predictions and actual game outcomes.
 
 **Example Commands:**
 
@@ -110,14 +122,14 @@ This corresponds to the "Evaluation Function Parameter Learning with TD Learning
 ```
 
 **Arguments:**
-- `args[0]`: Self-play learning configuration file (`selfplay_config.json`)
+- `args[0]`: Self-play reinforcement learning configuration file (`selfplay_config.json`)
 - `args[1]`: Evaluation function weights file (`value_func_weights.bin`). An error occurs if it doesn't exist.
-- `args[2]`: Number of learning cycles (e.g., `10`)
+- `args[2]`: Number of training cycles (e.g., `10`)
 - `args[3]` (optional): Specify `zero` to initialize the weights file with zeros before starting learning.
 
 #### 4.3. Evaluation Function Generation from Pool (DECODE_POOL)
 
-This tool extracts top-performing individuals (n-tuple structures) from the pool file (`pool.bin`) generated by the `OPTIMIZE_NTUPLE` tool and generates corresponding evaluation function files (`.bin`) and n-tuple definition files (`.txt`).
+This tool extracts highest-fitness individuals (n-tuple structures) from the pool file (`pool.bin`) generated by the `OPTIMIZE_NTUPLE` tool and generates corresponding evaluation function files (`.bin`) and n-tuple definition files (`.txt`).
 
 **Example Commands:**
 
@@ -136,6 +148,46 @@ This tool extracts top-performing individuals (n-tuple structures) from the pool
 
 Running this tool generates `value_func_weights_idv{i}.bin` and `ntuples_idv{i}.txt` in the current directory.
 
+#### 4.4. MCTS Engine (MCTS_ENGINE)
+
+The MCTS (Monte Carlo Tree Search) engine implements a PUCT-based search algorithm for strong Reversi gameplay. This engine uses n-tuple-based evaluation functions to guide Monte Carlo tree search.
+
+**Example Commands:**
+
+```sh
+# Run MCTS engine with default parameters
+./ACG2025-reference-implementation/bin/Release/net8.0/ACG2025-reference-implementation
+```
+
+The MCTS engine supports the NBoard protocol for communication with external GUIs, allowing it to run on the NBoard GUI application ( http://www.orbanova.com/nboard/ ). It loads evaluation function weights from `params/value_func_weights.bin` by default.
+
+**Key Features:**
+- PUCT (Predictor + Upper Confidence bounds applied to Trees) algorithm
+- n-tuple-based position evaluation
+- Configurable simulation count and search parameters
+- NBoard protocol compatibility for integration with NBoard GUI application
+
+#### 4.5. Alpha-Beta Pruning Engine (ALPHA_BETA_ENGINE)
+
+The Alpha-Beta Pruning engine implements classical minimax search with alpha-beta pruning, transposition tables, and move ordering for efficient and strong Reversi gameplay.
+
+**Example Commands:**
+
+```sh
+# Run Alpha-Beta engine with default parameters
+./ACG2025-reference-implementation/bin/Release/net8.0/ACG2025-reference-implementation
+```
+
+The Alpha-Beta engine also supports the NBoard protocol, allowing it to run on the NBoard GUI application ( http://www.orbanova.com/nboard/ ), and loads evaluation function weights from `params/value_func_weights.bin` by default.
+
+**Key Features:**
+- Alpha-beta pruning with transposition table
+- Iterative deepening search
+- Advanced move ordering techniques
+- n-tuple-based evaluation function
+- Configurable search depth based on game phase
+- NBoard protocol compatibility for integration with NBoard GUI application
+
 ### 5. Configuration File Structure
 
 The following shows the structure of configuration files used by each tool and parameter descriptions. Please refer to the template files in the `ConfigFileTemplates/` directory and adjust parameters as needed.
@@ -153,11 +205,11 @@ The following shows the structure of configuration files used by each tool and p
 ```
 
 **Parameter Descriptions:**
-- `NumTrainData`: Number of training data. The number of training game data used for evaluating each n-tuple structure.
-- `NumTestData`: Number of test data. The number of test game data used for measuring evaluation function performance after training.
-- `TrainDataVariationFactor`: Training data variation factor. A value from 0 to 1 that controls the diversity of training data.
-- `NumSimulations`: Number of Monte Carlo simulations. The number of simulations used for search at each position.
-- `TrainDataUpdateInterval`: Training data update interval. Updates training data every specified number of generations.
+- `NumTrainData`: The number of training game data used for evaluating each n-tuple structure.
+- `NumTestData`: The number of test game data used for measuring evaluation function performance after training.
+- `TrainDataVariationFactor`: A value from 0 to 1 that controls the diversity of training data.
+- `NumSimulations`: The number of simulations used for search at each position.
+- `TrainDataUpdateInterval`: Updates training data every specified number of generations.
 
 #### 5.2. BRKGA Configuration File (`brkga_config.json`)
 
@@ -175,14 +227,14 @@ The following shows the structure of configuration files used by each tool and p
 ```
 
 **Parameter Descriptions:**
-- `PopulationSize`: Population size. The number of individuals per generation in the genetic algorithm.
-- `EliteRate`: Elite individual rate. The proportion of excellent individuals in the population (0 to 1).
-- `MutantRate`: Mutant individual rate. The proportion of mutant individuals in the population (0 to 1).
-- `EliteInheritanceProb`: Elite inheritance probability. The probability of inheriting elite individual genes during crossover.
-- `LearningRateForEval`: Learning rate for evaluation. The learning rate of TD learning used when evaluating individuals.
-- `NumEpochsForEval`: Number of epochs for evaluation. The number of TD learning epochs used for evaluating each individual.
-- `PoolFileName`: Pool file name. Base name for pool files generated during the evolutionary process.
-- `FitnessHistoryFileName`: Fitness history file name. File name for recording fitness progression of each generation.
+- `PopulationSize`: The number of individuals per generation in the genetic algorithm.
+- `EliteRate`: The proportion of excellent individuals in the population (0 to 1).
+- `MutantRate`: The proportion of mutant individuals in the population (0 to 1).
+- `EliteInheritanceProb`: The probability of inheriting elite individual genes during crossover.
+- `LearningRateForEval`: The learning rate of supervised learning used when evaluating individuals.
+- `NumEpochsForEval`: The number of supervised learning epochs used for evaluating each individual.
+- `PoolFileName`: Base name for pool files generated during the evolutionary process.
+- `FitnessHistoryFileName`: File name for recording fitness progression of each generation.
 
 #### 5.3. TD Learning Configuration File (`td_config.json`)
 
@@ -204,18 +256,18 @@ The following shows the structure of configuration files used by each tool and p
 ```
 
 **Parameter Descriptions:**
-- `NumEpisodes`: Number of episodes. The number of games to run in TD learning.
-- `NumInitialRandomMoves`: Number of initial random moves. The number of random moves at the start of each game.
-- `LearningRate`: Learning rate. The learning rate for weight updates in TD learning (0 to 1).
-- `DiscountRate`: Discount rate. The discount rate for future rewards (0 to 1).
-- `InitialExplorationRate`: Initial exploration rate. The exploration rate of ε-greedy policy at the start of learning.
-- `FinalExplorationRate`: Final exploration rate. The exploration rate of ε-greedy policy at the end of learning.
+- `NumEpisodes`: The number of games to run in TD learning.
+- `NumInitialRandomMoves`: The number of random moves at the start of each game.
+- `LearningRate`: The learning rate for weight updates in TD learning (positive real number).
+- `DiscountRate`: The discount rate for future rewards (0 to 1).
+- `InitialExplorationRate`: The exploration rate of ε-greedy policy at the start of learning.
+- `FinalExplorationRate`: The exploration rate of ε-greedy policy at the end of learning.
 - `EligibilityTraceFactor`: Eligibility trace factor. The λ parameter of TD(λ) (0 to 1).
-- `HorizonCutFactor`: Horizon cut factor. Parameter related to search termination.
+- `HorizonCutFactor`: Horizon cut factor.
 - `TCLFactor`: TCL factor. Parameter related to Temporal Coherence Learning.
 - `WeightsFileName`: Weights file name. Base name for files that save weights after learning.
 - `SaveWeightsInterval`: Weights save interval. Saves weights every specified number of episodes.
-- `SaveOnlyLatestWeights`: Save only latest weights. When true, keeps only the latest weights file.
+- `SaveOnlyLatestWeights`: Whether to keep only the latest weights file (true) or all saved weights files (false).
 
 #### 5.4. Self-Play Learning Configuration File (`selfplay_config.json`)
 
@@ -235,15 +287,15 @@ The following shows the structure of configuration files used by each tool and p
 ```
 
 **Parameter Descriptions:**
-- `NumThreads`: Number of threads. The number of threads used for parallel execution.
-- `NumSamplingMoves`: Number of sampling moves. The number of moves to sample in each game.
-- `NumSimulations`: Number of simulations. The number of simulations to run in MCTS.
+- `NumThreads`: The number of threads used for parallel execution.
+- `NumSamplingMoves`: The number of moves made probabilistically based on MCTS search results in each game.
+- `NumSimulations`: The number of simulations to run in MCTS.
 - `RootDirichletAlpha`: Root Dirichlet alpha parameter. The α value of Dirichlet noise at the root node in MCTS search.
 - `RootExplorationFraction`: Root exploration fraction. The proportion of Dirichlet noise used for exploration at the root node.
 - `NumGamesInBatch`: Number of games in batch. The number of games included in one learning batch.
 - `NumEpoch`: Number of epochs. The number of epochs to run in self-play learning.
 - `StartWithRandomTrainData`: Start with random training data. When true, starts with random training data.
-- `LearningRate`: Learning rate. The learning rate for neural network training.
+- `LearningRate`: Learning rate. The learning rate for the n-tuple value function.
 - `WeightsFileName`: Weights file name. Base name for files that save weights after learning.
 
 ---
@@ -254,14 +306,14 @@ The following shows the structure of configuration files used by each tool and p
 
 ### 1. 概要
 
-本プロジェクトは、論文「Mastering Othello with genetic algorithm and reinforcement learning」で提案された手法のリファレンス実装です。本実装は、N-Tuple Systemを用いたリバーシの評価関数を、Biased Random-Key Genetic Algorithm (BRKGA) と Temporal-Difference (TD) 学習を組み合わせて最適化する手法に基づいています。
+本プロジェクトは、論文「Mastering Othello with genetic algorithm and reinforcement learning」で提案した手法のリファレンス実装です。本実装は、ゲームルールと盤面対称性以外のドメイン知識を必要としない、リバーシの効率的な学習手法を提示しています。
 
-具体的には、以下の2つの主要なコンポーネントから構成されています。
+本手法は、遺伝的アルゴリズムベースのn-tuple最適化と自己対局強化学習を組み合わせることで、強力な対局性能を実現します。主要な新規性は、Biased Random-Key Genetic Algorithm (BRKGA) を用いてn-tuple構造を最適化しながら、自己対局を通じて訓練データを生成することで、既存の棋譜やドメイン固有の戦略的知識への依存を排除したことです。
 
-1.  **N-Tuple Systemの構造最適化**: BRKGAを用いて、評価関数の特徴として有効なn-tupleの組（盤上の座標の組）を探索します。個々のn-tuple構造の評価は、TD学習によってその構造を持つ評価関数の学習を行い、その性能によって決定されます。
-2.  **評価関数のパラメータ学習**: 自己対戦を通じて、TD学習の一種であるTD(λ)法により、与えられたN-Tuple Systemの重み（パラメータ）を学習します。
+具体的には、以下の2つの主要なフェーズから構成されています。
 
-本実装を用いることで、論文で述べられている実験を再現し、独自の評価関数を構築することが可能です。
+1.  **n-tuple構造最適化**: BRKGAを用いて、特徴抽出のための最適なn-tupleの形状と組み合わせを進化させます。遺伝的アルゴリズムの各個体は空間的に連結されたn-tupleの集合を表し、適応度は各個体のn-tupleを用いてTD(λ)学習で価値関数を訓練した後、テストデータにおける価値関数の予測と実際の結果との間のクロスエントロピー損失の逆数として定義されます。
+2.  **自己対局強化学習**: 最適化されたn-tupleを取得後、モンテカルロ木探索（MCTS）を用いたAlphaZeroスタイルの自己対局により価値関数パラメータをさらに洗練し、訓練サイクルごとに50万ゲームを生成します。
 
 ### 2. ディレクトリ・ファイル構成
 
@@ -270,13 +322,13 @@ The following shows the structure of configuration files used by each tool and p
 -   `ACG2025-reference-implementation.sln`: Visual Studio用のソリューションファイル。
 -   `ACG2025-reference-implementation/`: プロジェクトのソースコードが含まれるディレクトリ。
     -   `Program.cs`: メインのエントリーポイント。ビルド時に定義するシンボルによって、実行される機能（ツール）が切り替わります。
-    -   `Engines/`: α-β探索やMCTSなどの思考エンジン。
+    -   `Engines/`: PUCTアルゴリズムを用いたMCTSエンジンと置換表付きα-β枝刈りエンジンを含むゲームエンジン。
     -   `Evaluation/`: 評価関数に関連するクラス。
-    -   `Learn/`: TD学習、自己対戦、BRKGAによるN-Tuple最適化など、機械学習アルゴリズムの実装。
+    -   `Learn/`: TD学習、自己対局、BRKGAによるn-tuple最適化など、機械学習アルゴリズムの実装。
     -   `NTupleSystem/`: N-Tuple Systemの構造や管理を行うクラス。
     -   `Reversi/`: リバーシのルール、盤面表現、着手生成など、ゲームの基本的なロジック。
     -   `Search/`: 探索アルゴリズム（α-β探索、MCTS）の実装。
-    -   `Protocols/`: NBoardプロトコルなど、思考エンジンを外部のGUIと通信させるためのインターフェース。
+    -   `Protocols/`: NBoardプロトコルなど、思考エンジンを外部のGUIと通信させるためのインターフェース。NBoard GUIアプリケーション（ http://www.orbanova.com/nboard/ ）との統合に対応。
     -   `Utils/`: 補助的なユーティリティクラス。
 -   `ConfigFileTemplates/`: 各ツールで使用する設定ファイル（`.json`）のテンプレートが格納されています。これらのファイルを任意の作業ディレクトリにコピーして使用してください。
 
@@ -291,7 +343,7 @@ The following shows the structure of configuration files used by each tool and p
   dotnet build -c Release -p:DefineConstants=OPTIMIZE_NTUPLE ACG2025-reference-implementation/ACG2025-reference-implementation.csproj
   ```
 
-- **TD学習による評価関数パラメータの学習 (RL_SELFPLAY)**
+- **自己対局強化学習 (RL_SELFPLAY)**
   ```sh
   dotnet build -c Release -p:DefineConstants=RL_SELFPLAY ACG2025-reference-implementation/ACG2025-reference-implementation.csproj
   ```
@@ -301,15 +353,25 @@ The following shows the structure of configuration files used by each tool and p
   dotnet build -c Release -p:DefineConstants=DECODE_POOL ACG2025-reference-implementation/ACG2025-reference-implementation.csproj
   ```
 
+- **MCTSエンジン (MCTS_ENGINE)**
+  ```sh
+  dotnet build -c Release -p:DefineConstants=MCTS_ENGINE ACG2025-reference-implementation/ACG2025-reference-implementation.csproj
+  ```
+
+- **α-β法エンジン (ALPHA_BETA_ENGINE)**
+  ```sh
+  dotnet build -c Release -p:DefineConstants=ALPHA_BETA_ENGINE ACG2025-reference-implementation/ACG2025-reference-implementation.csproj
+  ```
+
 ビルドが成功すると、`ACG2025-reference-implementation/bin/Release/net8.0/` ディレクトリに、指定した機能を持つ実行ファイル `ACG2025-reference-implementation` が生成されます。
 
 ### 4. ツールの使用方法
 
-本実装には、論文の実験に対応する3つの主要なツールが含まれています。これらのツールは、前述のビルドコマンドで適切なシンボルを指定することで有効になります。
+本実装には、3つの主要なツールと、リバーシ対局のための2つのゲームエンジンが含まれています。これらのツールとエンジンは、前述のビルドコマンドで適切なシンボルを指定することで有効になります。
 
 #### 4.1. N-Tuple Systemの構造最適化 (OPTIMIZE_NTUPLE)
 
-これは論文の「N-Tuple Systemの構造最適化」実験に対応します。BRKGAを用いて最適なn-tupleの構造を探索します。
+このツールはBRKGAを用いて最適なn-tupleの構造を探索します。
 
 **実行コマンド例:**
 
@@ -330,7 +392,7 @@ The following shows the structure of configuration files used by each tool and p
 ```
 
 **引数:**
-- `args[0]`: N-Tuple最適化の全体設定ファイル (`ntuple_optimizer_config.json`)
+- `args[0]`: n-tuple最適化の全体設定ファイル (`ntuple_optimizer_config.json`)
 - `args[1]`: BRKGAの設定ファイル (`brkga_config.json`)
 - `args[2]`: TD学習の設定ファイル (`td_config.json`)
 - `args[3]`: n-tupleのサイズ (例: `10`)
@@ -338,9 +400,9 @@ The following shows the structure of configuration files used by each tool and p
 - `args[5]`: BRKGAの世代数 (例: `100`)
 - `args[6]` (オプション): 探索を再開するためのプールファイル (`pool.bin`)
 
-#### 4.2. TD学習による評価関数パラメータの学習 (RL_SELFPLAY)
+#### 4.2. 自己対局強化学習 (RL_SELFPLAY)
 
-これは論文の「TD学習による評価関数のパラメータ学習」実験に対応します。自己対戦とTD(λ)法を用いて、特定のn-tuple構造を持つ評価関数のパラメータ（重み）を学習します。
+このツールは、最適化されたn-tuple構造を持つ評価関数のパラメータ（重み）を、AlphaZeroスタイルの自己対局強化学習とMCTSを用いて学習します。MCTSを使用した自己対局によってゲームを生成し、価値関数の予測と実際のゲーム結果との間のバイナリクロスエントロピーを最小化することで価値関数パラメータを最適化します。
 
 **実行コマンド例:**
 
@@ -357,14 +419,14 @@ The following shows the structure of configuration files used by each tool and p
 ```
 
 **引数:**
-- `args[0]`: 自己対戦学習の設定ファイル (`selfplay_config.json`)
+- `args[0]`: 自己対局強化学習の設定ファイル (`selfplay_config.json`)
 - `args[1]`: 評価関数の重みファイル (`value_func_weights.bin`)。存在しない場合はエラーになります。
-- `args[2]`: 学習サイクル数 (例: `10`)
+- `args[2]`: 訓練サイクル数 (例: `10`)
 - `args[3]` (オプション): `zero` を指定すると、重みファイルをゼロで初期化してから学習を開始します。
 
 #### 4.3. プールからの評価関数生成 (DECODE_POOL)
 
-`OPTIMIZE_NTUPLE` ツールによって生成されたプールファイル (`pool.bin`) から、成績上位の個体（n-tuple構造）を取り出し、それに対応する評価関数ファイル (`.bin`) とn-tuple定義ファイル (`.txt`) を生成します。
+`OPTIMIZE_NTUPLE` ツールによって生成されたプールファイル (`pool.bin`) から、適応度上位の個体（n-tuple構造）を取り出し、それに対応する評価関数ファイル (`.bin`) とn-tuple定義ファイル (`.txt`) を生成します。
 
 **実行コマンド例:**
 
@@ -383,6 +445,46 @@ The following shows the structure of configuration files used by each tool and p
 
 このツールを実行すると、カレントディレクトリに `value_func_weights_idv{i}.bin` と `ntuples_idv{i}.txt` が生成されます。
 
+#### 4.4. MCTSエンジン (MCTS_ENGINE)
+
+MCTSエンジンは、強力なリバーシ対局のためのPUCTベースの探索アルゴリズムを実装しています。このエンジンは、n-tuple系の評価関数を用いてモンテカルロ木探索による探索を実行します。
+
+**実行コマンド例:**
+
+```sh
+# デフォルトパラメータでMCTSエンジンを実行
+./ACG2025-reference-implementation/bin/Release/net8.0/ACG2025-reference-implementation
+```
+
+MCTSエンジンは外部GUIとの通信にNBoardプロトコルをサポートしており、NBoard GUIアプリケーション（ http://www.orbanova.com/nboard/ ）上で動作させることが可能です。デフォルトで `params/value_func_weights.bin` から評価関数の重みを読み込みます。
+
+**主な機能:**
+- PUCT (Predictor + Upper Confidence bounds applied to Trees) アルゴリズム
+- n-tupleによる局面評価
+- シミュレーション回数や探索パラメータを設定可能
+- NBoard GUIアプリケーションとの統合のためのNBoardプロトコル対応
+
+#### 4.5. α-β法エンジン (ALPHA_BETA_ENGINE)
+
+α-β法エンジンは、効率的で強力なリバーシ対局のために、α-β枝刈り、置換表、着手順序付けを備えた古典的なミニマックス探索を実装しています。
+
+**実行コマンド例:**
+
+```sh
+# デフォルトパラメータでα-β法エンジンを実行
+./ACG2025-reference-implementation/bin/Release/net8.0/ACG2025-reference-implementation
+```
+
+α-β法エンジンもNBoardプロトコルをサポートしており、NBoard GUIアプリケーション（ http://www.orbanova.com/nboard/ ）上で動作させることが可能です。デフォルトで `params/value_func_weights.bin` から評価関数の重みを読み込みます。
+
+**主な機能:**
+- 置換表付きα-β枝刈り
+- 反復深化探索
+- 高度な着手順序付け技法
+- n-tuple系評価関数
+- ゲーム局面に基づく探索深度の設定
+- NBoard GUIアプリケーションとの統合のためのNBoardプロトコル対応
+
 ### 5. 設定ファイルの構造
 
 各ツールで使用する設定ファイルの構造とパラメータの説明を以下に示します。`ConfigFileTemplates/` ディレクトリにあるテンプレートファイルを参考に、必要に応じてパラメータを調整してください。
@@ -400,11 +502,11 @@ The following shows the structure of configuration files used by each tool and p
 ```
 
 **パラメータ説明:**
-- `NumTrainData`: 学習用データ数。各n-tuple構造の評価に使用する学習用ゲームデータの数。
-- `NumTestData`: テスト用データ数。学習後の評価関数の性能測定に使用するテスト用ゲームデータの数。
-- `TrainDataVariationFactor`: 学習データのバリエーション係数。0から1の値で、学習データの多様性を制御。
-- `NumSimulations`: モンテカルロシミュレーション数。各局面での探索に使用するシミュレーション数。
-- `TrainDataUpdateInterval`: 学習データ更新間隔。指定した世代数ごとに学習用データを更新。
+- `NumTrainData`: 各n-tuple構造の評価に使用する訓練用ゲームデータの数。
+- `NumTestData`: 学習後の評価関数の性能測定に使用するテスト用ゲームデータの数。
+- `TrainDataVariationFactor`: 0から1の値で、訓練データの多様性を制御。
+- `NumSimulations`: 各局面での探索に使用するシミュレーション数。
+- `TrainDataUpdateInterval`: 指定した世代数ごとに訓練用データを更新。
 
 #### 5.2. BRKGA設定ファイル (`brkga_config.json`)
 
@@ -422,14 +524,14 @@ The following shows the structure of configuration files used by each tool and p
 ```
 
 **パラメータ説明:**
-- `PopulationSize`: 集団サイズ。遺伝的アルゴリズムの1世代あたりの個体数。
-- `EliteRate`: エリート個体率。集団における優秀な個体の比率（0から1）。
-- `MutantRate`: 突然変異個体率。集団における突然変異個体の比率（0から1）。
-- `EliteInheritanceProb`: エリート継承確率。交叉時にエリート個体の遺伝子を継承する確率。
-- `LearningRateForEval`: 評価用学習率。個体の評価時に使用するTD学習の学習率。
-- `NumEpochsForEval`: 評価用エポック数。各個体の評価に使用するTD学習のエポック数。
-- `PoolFileName`: プールファイル名。進化過程で生成されるプールファイルのベース名。
-- `FitnessHistoryFileName`: 適応度履歴ファイル名。各世代の適応度の推移を記録するファイル名。
+- `PopulationSize`: 遺伝的アルゴリズムの1世代あたりの個体数。
+- `EliteRate`: 集団における優秀な個体の比率（0から1）。
+- `MutantRate`: 集団における突然変異個体の比率（0から1）。
+- `EliteInheritanceProb`: 交叉時にエリート個体の遺伝子を継承する確率。
+- `LearningRateForEval`: 個体の評価時に使用する教師あり学習の学習率。
+- `NumEpochsForEval`: 各個体の評価に使用する教師あり学習のエポック数。
+- `PoolFileName`: 進化過程で生成されるプールファイルのベース名。
+- `FitnessHistoryFileName`: 各世代の適応度の推移を記録するファイル名。
 
 #### 5.3. TD学習設定ファイル (`td_config.json`)
 
@@ -451,20 +553,20 @@ The following shows the structure of configuration files used by each tool and p
 ```
 
 **パラメータ説明:**
-- `NumEpisodes`: エピソード数。TD学習で実行するゲーム数。
-- `NumInitialRandomMoves`: 初期ランダム手数。ゲーム開始時のランダムな着手数。
-- `LearningRate`: 学習率。TD学習の重み更新における学習率（0から1）。
-- `DiscountRate`: 割引率。将来の報酬に対する割引率（0から1）。
-- `InitialExplorationRate`: 初期探索率。学習開始時のε-greedyポリシーの探索率。
-- `FinalExplorationRate`: 最終探索率。学習終了時のε-greedyポリシーの探索率。
+- `NumEpisodes`: TD学習で実行するゲーム数。
+- `NumInitialRandomMoves`: ゲーム開始時のランダムな着手数。
+- `LearningRate`: TD学習の重み更新における学習率（正の実数）。
+- `DiscountRate`: 将来の報酬に対する割引率（0から1）。
+- `InitialExplorationRate`: 学習開始時のε-greedyポリシーの探索率。
+- `FinalExplorationRate`: 学習終了時のε-greedyポリシーの探索率。
 - `EligibilityTraceFactor`: 適格度トレース係数。TD(λ)のλパラメータ（0から1）。
-- `HorizonCutFactor`: ホライズンカット係数。探索の打ち切りに関するパラメータ。
+- `HorizonCutFactor`: horizon cut係数。
 - `TCLFactor`: TCL係数。Temporal Coherence Learning関連のパラメータ。
 - `WeightsFileName`: 重みファイル名。学習後の重みを保存するファイルのベース名。
 - `SaveWeightsInterval`: 重み保存間隔。指定したエピソード数ごとに重みを保存。
-- `SaveOnlyLatestWeights`: 最新重みのみ保存。trueの場合、最新の重みファイルのみを保持。
+- `SaveOnlyLatestWeights`: 最新の重みファイルのみを保持するか（true）、全ての保存された重みファイルを保持するか（false）。
 
-#### 5.4. 自己対戦学習設定ファイル (`selfplay_config.json`)
+#### 5.4. 自己対局学習設定ファイル (`selfplay_config.json`)
 
 ```json
 {
@@ -482,13 +584,13 @@ The following shows the structure of configuration files used by each tool and p
 ```
 
 **パラメータ説明:**
-- `NumThreads`: スレッド数。並列実行に使用するスレッド数。
-- `NumSamplingMoves`: サンプリング手数。各ゲームでサンプリングする着手数。
-- `NumSimulations`: シミュレーション数。MCTSで実行するシミュレーション数。
+- `NumThreads`: 並列実行に使用するスレッド数。
+- `NumSamplingMoves`: 各ゲームでMCTS探索結果に基づいて確率的に着手を行う回数。
+- `NumSimulations`: MCTSで実行するシミュレーション数。
 - `RootDirichletAlpha`: ルートディリクレαパラメータ。MCTS探索のルートノードにおけるディリクレノイズのα値。
 - `RootExplorationFraction`: ルート探索率。ルートノードでの探索に使用するディリクレノイズの比率。
 - `NumGamesInBatch`: バッチ内ゲーム数。1つの学習バッチに含まれるゲーム数。
-- `NumEpoch`: エポック数。自己対戦学習で実行するエポック数。
-- `StartWithRandomTrainData`: ランダム学習データ開始。trueの場合、ランダムな学習データから開始。
-- `LearningRate`: 学習率。ニューラルネットワークの学習率。
+- `NumEpoch`: エポック数。自己対局学習で実行するエポック数。
+- `StartWithRandomTrainData`: ランダム訓練データ開始。trueの場合、ランダムな訓練データから開始。
+- `LearningRate`: 学習率。n-tuple価値関数の学習率。
 - `WeightsFileName`: 重みファイル名。学習後の重みを保存するファイルのベース名。
