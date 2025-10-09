@@ -1,0 +1,14 @@
+{
+  "NumEpisodes": 250000,
+  "NumInitialRandomMoves": 1,
+  "LearningRate": 0.2,
+  "DiscountRate": 1,
+  "InitialExplorationRate": 0.2,
+  "FinalExplorationRate": 0.1,
+  "EligibilityTraceFactor": 0.5,
+  "HorizonCutFactor": 0.1,
+  "TCLFactor": 2.7,
+  "WeightsFileName": "value_func_weights_td",
+  "SaveWeightsInterval": 10000,
+  "SaveOnlyLatestWeights": true
+}

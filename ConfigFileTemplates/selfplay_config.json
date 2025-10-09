@@ -1,0 +1,12 @@
+{
+  "NumThreads": 8,
+  "NumSamplingMoves": 30,
+  "NumSimulations": 800,
+  "RootDirichletAlpha": 0.3,
+  "RootExplorationFraction": 0.25,
+  "NumGamesInBatch": 500000,
+  "NumEpoch": 200,
+  "StartWithRandomTrainData": true,
+  "LearningRate": 1.0,
+  "WeightsFileName": "value_func_weights_sp"
+}

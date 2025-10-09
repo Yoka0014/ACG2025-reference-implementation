@@ -1,0 +1,7 @@
+{
+  "NumTrainData": 10000,
+  "NumTestData": 10000,
+  "TrainDataVariationFactor": 0.05,
+  "NumSimulations": 3200,
+  "TrainDataUpdateInterval": 100
+}
