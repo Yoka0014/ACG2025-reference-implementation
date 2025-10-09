@@ -59,7 +59,7 @@ internal record class SelfPlayTrainerConfig
     /// <summary>
     /// Learning rate for the supervised training phase.
     /// </summary>
-    public double LearningRate { get; init; } = (double)0.001;
+    public double LearningRate { get; init; } = (double)1.0;
 
     /// <summary>
     /// Base filename for saving the trained value function weights.

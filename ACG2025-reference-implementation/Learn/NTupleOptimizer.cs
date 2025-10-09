@@ -87,6 +87,8 @@ internal class NTupleOptimizer<WeightType> where WeightType : unmanaged, IFloati
     /// <summary>Parallel processing configuration</summary>
     ParallelOptions _parallelOptions = new();
 
+    Individual[]? _currentPool;
+
     /// <summary>
     /// Initializes a new instance of NTupleOptimizer with the specified configuration parameters.
     /// Uses a shared random number generator.

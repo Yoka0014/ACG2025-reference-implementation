@@ -141,7 +141,7 @@ internal class FeatureVector
     {
         NTupleManager = nTupleManager;
         Features = new Feature[NTupleManager.NumNTuples];
-        var nTuples = NTupleManager.Tuples;
+        var nTuples = NTupleManager.NTuples;
         for (var nTupleID = 0; nTupleID < Features.Length; nTupleID++)
             Features[nTupleID] = new Feature(nTuples[nTupleID].NumSymmetricExpansions);
 
@@ -193,7 +193,7 @@ internal class FeatureVector
     void InitFeatureDiffTable()
     {
         var diffs = new List<(int nTupleID, int idx, FeatureType diff)>();
-        var tuples = NTupleManager.Tuples;
+        var tuples = NTupleManager.NTuples;
         for (var coord = BoardCoordinate.A1; coord <= BoardCoordinate.H8; coord++)
         {
             diffs.Clear();
@@ -251,7 +251,7 @@ internal class FeatureVector
 
         for (var nTupleID = 0; nTupleID < Features.Length; nTupleID++)
         {
-            ReadOnlySpan<NTuple> nTuples = NTupleManager.Tuples;
+            ReadOnlySpan<NTuple> nTuples = NTupleManager.NTuples;
             ref Feature f = ref Features[nTupleID];
             for (var i = 0; i < nTuples[nTupleID].NumSymmetricExpansions; i++)
             {

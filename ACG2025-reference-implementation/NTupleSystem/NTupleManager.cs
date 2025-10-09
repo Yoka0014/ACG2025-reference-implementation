@@ -15,7 +15,7 @@ internal readonly struct NTupleManager
     /// <summary>
     /// Gets all the n-tuples being managed.
     /// </summary>
-    public readonly ReadOnlySpan<NTuple> Tuples => _ntuples;
+    public readonly ReadOnlySpan<NTuple> NTuples => _ntuples;
 
     /// <summary>
     /// Gets the number of n-tuples being managed.

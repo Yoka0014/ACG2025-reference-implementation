@@ -216,6 +216,12 @@ internal class ValueFunctionForTrain<WeightType> where WeightType : unmanaged, I
     public Span<WeightType> GetWeights(DiscColor color, int phase)
         => Weights.AsSpan(_discColorOffset[(int)color])[PhaseOffset[phase]..PhaseOffset[phase + 1]];
 
+    public void InitWithZeros()
+    {
+        Array.Fill(Weights, WeightType.Zero);
+        Array.Fill(Bias, WeightType.Zero);
+    }
+
     /// <summary>
     /// Copies weights from black to white by applying opponent feature transformation.
     /// </summary>
@@ -386,7 +392,7 @@ internal class ValueFunctionForTrain<WeightType> where WeightType : unmanaged, I
         fs.Write(Encoding.ASCII.GetBytes(Label), 0, LabelSize);
 
         // save N-Tuples
-        ReadOnlySpan<NTuple> nTuples = NTupleManager.Tuples;
+        ReadOnlySpan<NTuple> nTuples = NTupleManager.NTuples;
         fs.Write(BitConverter.GetBytes(nTuples.Length));
         for (var nTupleID = 0; nTupleID < nTuples.Length; nTupleID++)
         {
