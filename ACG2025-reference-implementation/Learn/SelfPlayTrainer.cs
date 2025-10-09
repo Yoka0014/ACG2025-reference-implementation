@@ -11,7 +11,7 @@ using System.Collections.Concurrent;
 
 using ACG2025_reference_implementation.Reversi;
 using ACG2025_reference_implementation.Evaluation;
-using ACG2025_reference_implementation.Search.MCTS;
+using ACG2025_reference_implementation.Search.MCTS.Training;
 
 /// <summary>
 /// Configuration record for the SelfPlayTrainer class.
@@ -186,7 +186,7 @@ internal class SelfPlayTrainer<WeightType> where WeightType : unmanaged, IFloati
         var numActors = _config.NumThreads;
         var quantValueFunc = ValueFunction.CreateFromTrainedValueFunction(valueFunc);
 
-        var searchers = Enumerable.Range(0, numActors).Select(_ => new PUCTSearcher(quantValueFunc)
+        var searchers = Enumerable.Range(0, numActors).Select(_ => new FastPUCTSearcher(quantValueFunc, _config.NumSimulations)
         {
             RootDirchletAlpha = _config.RootDirichletAlpha,
             RootExplorationFraction = _config.RootExplorationFraction
@@ -276,7 +276,7 @@ internal class SelfPlayTrainer<WeightType> where WeightType : unmanaged, IFloati
     /// <param name="searcher">The MCTS searcher to use for move selection.</param>
     /// <param name="rand">Random number generator for probabilistic move sampling.</param>
     /// <returns>A GameDatasetItem containing the game data and evaluation scores for training.</returns>
-    GameDatasetItem GenerateTrainDataWithMCTS(Position rootPos, PUCTSearcher searcher, Random rand)
+    GameDatasetItem GenerateTrainDataWithMCTS(Position rootPos, FastPUCTSearcher searcher, Random rand)
     {
         var pos = rootPos;
         var moveHistory = new List<Move>();
@@ -299,12 +299,12 @@ internal class SelfPlayTrainer<WeightType> where WeightType : unmanaged, IFloati
                 evalScores.Add((Half)1 - evalScores[^1]);
                 passCount++;
 
-                if (!searcher.TransitionRootStateToChildState(BoardCoordinate.Pass))
-                    searcher.SetRootPosition(ref pos);
+                searcher.PassRootPosition();
+
                 continue;
             }
 
-            searcher.SearchOnSingleThread(_config.NumSimulations);
+            searcher.Search();
 
             Move? selectedMove;
 
@@ -324,7 +324,7 @@ internal class SelfPlayTrainer<WeightType> where WeightType : unmanaged, IFloati
             evalScores.Add((Half)searcher.RootValue);
             moveCount++;
 
-            searcher.TransitionRootStateToChildState(move.Coord);
+            searcher.UpdateRootPosition(ref move);
         }
 
         moveHistory.RemoveRange(moveHistory.Count - 2, 2);  // removes last two passes.

@@ -49,11 +49,41 @@ internal class FastPUCTSearcher(ValueFunction valueFunc, int numSimulations)
     State _rootState;
 
     /// <summary>
+    /// Gets the root value representing the expected reward for the current player at the root position.
+    /// Returns the proven outcome value if the position is solved, otherwise returns the expected reward from MCTS evaluation.
+    /// Returns NaN if no root node exists.
+    /// </summary>
+    public double RootValue
+    {
+        get
+        {
+            if (_root is null)
+                return double.NaN;
+
+            if (_rootEdgeLabel != EdgeLabel.NotProved)
+                return OutcomeToReward[(int)(_rootEdgeLabel ^ EdgeLabel.Proved)];
+
+            var valueSum = 0.0;
+            for (var i = 0; i < _root.Edges.Length; i++)
+            {
+                ref var edge = ref _root.Edges[i];
+                valueSum += edge.ExpectedReward;
+            }
+
+            return valueSum / _root.NumChildren;
+        }
+    }
+
+    /// <summary>
     /// Sets the root position for the search tree and initializes a new search tree.
     /// This method prepares the searcher for a new position but doesn't start the search.
     /// </summary>
     /// <param name="pos">The game position to set as the root of the search tree</param>
     public void SetRootPosition(ref Position pos) => _rootState = new State(pos, _valueFunc.NTupleManager);
+
+    public void UpdateRootPosition(ref Move move) => _rootState.Update(ref move);
+
+    public void PassRootPosition() => _rootState.Pass();
 
     /// <summary>
     /// Performs the complete MCTS search by running the specified number of simulations.
