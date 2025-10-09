@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-
+using ACG2025_reference_implementation.Engines;
 using ACG2025_reference_implementation.Evaluation;
 using ACG2025_reference_implementation.Learn;
+using ACG2025_reference_implementation.Protocols;
 
 namespace ACG2025_reference_implementation
 {
@@ -13,7 +14,11 @@ namespace ACG2025_reference_implementation
     {
         static void Main(string[] args)
         {
-#if OPTIMIZE_NTUPLE
+#if MCTS_ENGINE
+            EngineMain(new MCTSEngine());
+#elif ALPHA_BETA_ENGINE
+            EngineMain(new AlphaBetaPruningEngine());
+#elif OPTIMIZE_NTUPLE
             OptimizeNTupleMain(args);
 #elif RL_SELFPLAY
             RLSelfPlayMain(args);
@@ -22,6 +27,12 @@ namespace ACG2025_reference_implementation
 #elif DEV_TEST
             DevTest(args);
 #endif
+        }
+
+        static void EngineMain(Engine engine)
+        {
+            var nboard = new NBoard();
+            nboard.Mainloop(engine);            
         }
 
         static void OptimizeNTupleMain(string[] args)
