@@ -39,6 +39,12 @@ The roles of the main directories and files in this project are as follows:
 
 This project is developed with .NET 8. You can build it in an environment with .NET 8 SDK installed. Specify preprocessor symbols at build time according to the tool you want to use.
 
+**Dependencies:**
+This project depends on the following NuGet package:
+- **MathNet.Numerics** (Version 5.0.0): Used for statistical distributions (specifically Dirichlet distribution) in the MCTS implementation.
+
+The required NuGet packages will be automatically downloaded and installed when you run `dotnet build`.
+
 The following commands show how to build each tool:
 
 - **N-Tuple System Structure Optimization (OPTIMIZE_NTUPLE)**
@@ -335,6 +341,12 @@ The following shows the structure of configuration files used by each tool and p
 ### 3. ビルド方法
 
 本プロジェクトは .NET 8 で開発されています。.NET 8 SDKがインストールされている環境でビルドできます。使用したいツールに応じて、ビルド時にプリプロセッサシンボルを指定します。
+
+**依存関係:**
+本プロジェクトは以下のNuGetパッケージに依存しています：
+- **MathNet.Numerics** (バージョン 5.0.0): MCTS実装で統計分布（特にディリクレ分布）を使用するために必要です。
+
+`dotnet build`を実行すると、必要なNuGetパッケージが自動的にダウンロードされてインストールされます。
 
 以下に、各ツールをビルドするためのコマンドを示します。
 
