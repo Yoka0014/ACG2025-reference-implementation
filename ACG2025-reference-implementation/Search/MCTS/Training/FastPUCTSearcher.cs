@@ -79,11 +79,23 @@ internal class FastPUCTSearcher(ValueFunction valueFunc, int numSimulations)
     /// This method prepares the searcher for a new position but doesn't start the search.
     /// </summary>
     /// <param name="pos">The game position to set as the root of the search tree</param>
-    public void SetRootPosition(ref Position pos) => _rootState = new State(pos, _valueFunc.NTupleManager);
+    public void SetRootPosition(ref Position pos)
+    {
+        _rootState = new State(pos, _valueFunc.NTupleManager);
+        _rootEdgeLabel = EdgeLabel.NotProved;
+    }
 
-    public void UpdateRootPosition(ref Move move) => _rootState.Update(ref move);
+    public void UpdateRootPosition(ref Move move)
+    {
+        _rootState.Update(ref move);
+        _rootEdgeLabel = EdgeLabel.NotProved;
+    }
 
-    public void PassRootPosition() => _rootState.Pass();
+    public void PassRootPosition()
+    {
+        _rootState.Pass();
+        _rootEdgeLabel = EdgeLabel.NotProved;
+    }
 
     /// <summary>
     /// Performs the complete MCTS search by running the specified number of simulations.
