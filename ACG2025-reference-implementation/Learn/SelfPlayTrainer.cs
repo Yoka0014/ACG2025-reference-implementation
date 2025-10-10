@@ -59,7 +59,13 @@ internal record class SelfPlayTrainerConfig
     /// <summary>
     /// Learning rate for the supervised training phase.
     /// </summary>
-    public double LearningRate { get; init; } = (double)1.0;
+    public double LearningRate { get; init; } = 1.0;
+
+    /// <summary>
+    /// Fraction of the training loss that comes from the root evaluation score vs the final game outcome.
+    /// A value of 0.0 means training uses only the final game result, while 1.0 means training uses only the MCTS evaluation scores.
+    /// </summary>
+    public double RootValueFraction { get; init; } = 0.0; 
 
     /// <summary>
     /// Base filename for saving the trained value function weights.
@@ -157,6 +163,7 @@ internal class SelfPlayTrainer<WeightType> where WeightType : unmanaged, IFloati
                 new SupervisedTrainerConfig
                 {
                     LearningRate = _config.LearningRate,
+                    EvalScoreFraction = _config.RootValueFraction,
                     NumEpoch = _config.NumEpoch,
                     WeightsFileName = $"{_config.WeightsFileName}_{i}"
                 }).Train([.. _trainDataSet], [], _config.NumThreads);

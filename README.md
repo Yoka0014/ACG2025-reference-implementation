@@ -288,6 +288,7 @@ The following shows the structure of configuration files used by each tool and p
   "NumEpoch": 200,
   "StartWithRandomTrainData": true,
   "LearningRate": 1.0,
+  "RootValueFraction": 0.0,
   "WeightsFileName": "value_func_weights_sp"
 }
 ```
@@ -302,6 +303,7 @@ The following shows the structure of configuration files used by each tool and p
 - `NumEpoch`: Number of epochs. The number of epochs to run in self-play learning.
 - `StartWithRandomTrainData`: Start with random training data. When true, starts with random training data.
 - `LearningRate`: Learning rate. The learning rate for the n-tuple value function.
+- `RootValueFraction`: Root value fraction. The fraction of training loss from root evaluation scores vs final game outcomes (0.0 = final result only, 1.0 = MCTS evaluations only).
 - `WeightsFileName`: Weights file name. Base name for files that save weights after learning.
 
 ---
@@ -591,6 +593,7 @@ MCTSエンジンは外部GUIとの通信にNBoardプロトコルをサポート�
   "NumEpoch": 200,
   "StartWithRandomTrainData": true,
   "LearningRate": 1.0,
+  "RootValueFraction": 0.0,
   "WeightsFileName": "value_func_weights_sp"
 }
 ```
@@ -605,4 +608,5 @@ MCTSエンジンは外部GUIとの通信にNBoardプロトコルをサポート�
 - `NumEpoch`: エポック数。自己対局学習で実行するエポック数。
 - `StartWithRandomTrainData`: ランダム訓練データ開始。trueの場合、ランダムな訓練データから開始。
 - `LearningRate`: 学習率。n-tuple価値関数の学習率。
+- `RootValueFraction`: MCTS評価値混合率。訓練時の損失関数において、MCTS評価スコアと最終ゲーム結果の混合比率（0.0=最終結果のみ使用、1.0=MCTS評価のみ使用）。
 - `WeightsFileName`: 重みファイル名。学習後の重みを保存するファイルのベース名。

@@ -8,5 +8,6 @@
   "NumEpoch": 200,
   "StartWithRandomTrainData": true,
   "LearningRate": 0.01,
+  "RootValueFraction": 0.0,
   "WeightsFileName": "value_func_weights_sp"
 }

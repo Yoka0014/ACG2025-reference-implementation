@@ -1,4 +1,6 @@
-﻿using System;
+﻿#define DEV_TEST
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -274,7 +276,6 @@ namespace ACG2025_reference_implementation
 
         static void DevTest(string[] args)
         {
-
         }
     }
 }
