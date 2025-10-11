@@ -567,7 +567,8 @@ internal class BRKGA<WeightType> where WeightType : unmanaged, IFloatingPointIee
         var nTupleManager = new NTupleManager(DecodeChromosome(individual.Chromosome, _nTupleSize, _numNTuples));
         var valueFunc = new ValueFunctionForTrain<WeightType>(nTupleManager);
         var slTrainer = new SupervisedTrainer<WeightType>($"INDV_{id}", valueFunc, _slConfig, Stream.Null);
-        slTrainer.Train(trainData, [], saveWeights: false, saveLossHistory: false);
+        
+        slTrainer.Train(trainData, [], 1, saveWeights: false, saveLossHistory: false);
         individual.Fitness = float.CreateChecked(WeightType.One / CalculateLoss(valueFunc, testData));
     }
 
