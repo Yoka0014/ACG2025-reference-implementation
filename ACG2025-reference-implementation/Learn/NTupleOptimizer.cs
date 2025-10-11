@@ -124,7 +124,7 @@ internal class NTupleOptimizer<WeightType> where WeightType : unmanaged, IFloati
         _nTupleSize = nTupleSize;
         _numNTuples = numNTuples;
         _rand = rand;
-        NumThreads = Environment.ProcessorCount;
+        NumThreads = config.NumThreads;
     }
 
     /// <summary>
