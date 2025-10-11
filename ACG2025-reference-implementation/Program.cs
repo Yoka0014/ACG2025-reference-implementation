@@ -90,7 +90,7 @@ namespace ACG2025_reference_implementation
 
             var optimizer = new NTupleOptimizer<float>(mainConfig, gaConfig, tdConfig, nTupleSize.Value, numNTuples.Value);
 
-            if (args.Length < NumArgs - 1)
+            if (args.Length < NumArgs)
                 optimizer.Train(numGenerations.Value);
             else
                 optimizer.Train(args[^1], numGenerations.Value);
