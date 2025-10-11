@@ -39,7 +39,7 @@ namespace ACG2025_reference_implementation
 
         static void OptimizeNTupleMain(string[] args)
         {
-            const int NumArgs = 6;
+            const int NumArgs = 7;
 
             if (args.Length < NumArgs - 1)
             {
