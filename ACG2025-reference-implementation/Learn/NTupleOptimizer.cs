@@ -22,6 +22,12 @@ using ACG2025_reference_implementation.Utils;
 internal record class NTupleOptimizerConfig
 {
     /// <summary>
+    /// Gets or sets the number of threads to use for parallel processing during optimization.
+    /// Defaults to the number of processor cores available on the system.
+    /// </summary>
+    public int NumThreads { get; init; } = Environment.ProcessorCount;
+
+    /// <summary>
     /// Gets or sets the number of training data samples to generate.
     /// </summary>
     public int NumTrainData { get; init; } = 10000;

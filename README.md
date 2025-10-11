@@ -202,6 +202,7 @@ The following shows the structure of configuration files used by each tool and p
 
 ```json
 {
+  "NumThreads": 8,
   "NumTrainData": 10000,
   "NumTestData": 10000,
   "TrainDataVariationFactor": 0.05,
@@ -211,6 +212,7 @@ The following shows the structure of configuration files used by each tool and p
 ```
 
 **Parameter Descriptions:**
+- `NumThreads`: The number of threads to use for parallel processing during optimization. 
 - `NumTrainData`: The number of training game data used for evaluating each n-tuple structure.
 - `NumTestData`: The number of test game data used for measuring evaluation function performance after training.
 - `TrainDataVariationFactor`: A value from 0 to 1 that controls the diversity of training data.
@@ -507,6 +509,7 @@ MCTSエンジンは外部GUIとの通信にNBoardプロトコルをサポート�
 
 ```json
 {
+  "NumThreads": 8,
   "NumTrainData": 10000,
   "NumTestData": 10000,
   "TrainDataVariationFactor": 0.05,
@@ -516,6 +519,7 @@ MCTSエンジンは外部GUIとの通信にNBoardプロトコルをサポート�
 ```
 
 **パラメータ説明:**
+- `NumThreads`: 最適化処理中の並列処理に使用するスレッド数。
 - `NumTrainData`: 各n-tuple構造の評価に使用する訓練用ゲームデータの数。
 - `NumTestData`: 学習後の評価関数の性能測定に使用するテスト用ゲームデータの数。
 - `TrainDataVariationFactor`: 0から1の値で、訓練データの多様性を制御。
