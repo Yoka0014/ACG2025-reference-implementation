@@ -156,7 +156,7 @@ internal class NTupleOptimizer<WeightType> where WeightType : unmanaged, IFloati
             FitnessHistoryFileName = $"{_gaConfig.FitnessHistoryFileName}_0"
         };
 
-        var ga = new BRKGA<WeightType>(gaConfig, _nTupleSize, _numNTuples);
+        var ga = new BRKGA<WeightType>(gaConfig, _nTupleSize, _numNTuples) { NumThreads = NumThreads };
 
         Console.WriteLine("Generate random play games.");
 
