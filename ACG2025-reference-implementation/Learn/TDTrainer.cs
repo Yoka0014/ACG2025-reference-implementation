@@ -177,43 +177,6 @@ internal class TDTrainer<WeightType> where WeightType : unmanaged, IFloatingPoin
     }
 
     /// <summary>
-    /// Trains multiple agents in parallel using the specified configuration.
-    /// Uses all available processor cores for parallel training.
-    /// </summary>
-    /// <param name="config">Training configuration parameters</param>
-    /// <param name="numAgents">Number of agents to train in parallel</param>
-    /// <param name="nTupleSize">Size of each n-tuple</param>
-    /// <param name="numNTuples">Number of n-tuples per agent</param>
-    /// <param name="numMovesPerPhase">Number of moves per game phase</param>
-    public static void TrainMultipleAgents(TDTrainerConfig config, int numAgents, int nTupleSize, int numNTuples, int numMovesPerPhase)
-        => TrainMultipleAgents(config, numAgents, nTupleSize, numNTuples, numMovesPerPhase, Environment.ProcessorCount);
-
-    /// <summary>
-    /// Trains multiple agents in parallel using the specified configuration and thread count.
-    /// </summary>
-    /// <param name="config">Training configuration parameters</param>
-    /// <param name="numAgents">Number of agents to train in parallel</param>
-    /// <param name="nTupleSize">Size of each n-tuple</param>
-    /// <param name="numNTuples">Number of n-tuples per agent</param>
-    /// <param name="numMovesPerPhase">Number of moves per game phase</param>
-    /// <param name="numThreads">Maximum number of threads to use for parallel training</param>
-    public static void TrainMultipleAgents(TDTrainerConfig config, int numAgents, int nTupleSize, int numNTuples, int numMovesPerPhase, int numThreads)
-    {
-        var options = new ParallelOptions { MaxDegreeOfParallelism = numThreads };
-        Parallel.For(0, numAgents, options, agentID =>
-        {
-            var dir = $"AG-{agentID}";
-            if (!Directory.Exists(dir))
-                Directory.CreateDirectory(dir);
-
-            var nTuples = (from _ in Enumerable.Range(0, numNTuples) select new NTuple(nTupleSize)).ToArray();
-            var nTupleManager = new NTupleManager(nTuples);
-            var valueFunc = new ValueFunctionForTrain<WeightType>(nTupleManager, numMovesPerPhase);
-            new TDTrainer<WeightType>($"AG-{agentID}", valueFunc, config with { WeightsFileName = Path.Combine(dir, config.WeightsFileName) }).Train();
-        });
-    }
-
-    /// <summary>
     /// Runs the complete training process for the specified number of episodes.
     /// Implements temporal difference learning with eligibility traces and exploration decay.
     /// </summary>
