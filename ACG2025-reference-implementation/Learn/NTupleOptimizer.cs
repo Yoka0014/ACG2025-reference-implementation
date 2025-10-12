@@ -243,7 +243,7 @@ internal class NTupleOptimizer<WeightType> where WeightType : unmanaged, IFloati
             Parallel.For(0, numThreads, _parallelOptions, threadID =>
             {
                 var trainer = new TDTrainer<WeightType>($"AG-{i + threadID}", valueFuncs[i + threadID], _tdConfig, Stream.Null, _rands[threadID]);
-                trainer.Train();
+                trainer.Train(saveWeights: false);
             });
         }
 
