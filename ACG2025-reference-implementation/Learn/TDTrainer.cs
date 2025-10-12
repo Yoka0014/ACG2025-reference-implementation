@@ -180,7 +180,7 @@ internal class TDTrainer<WeightType> where WeightType : unmanaged, IFloatingPoin
     /// Runs the complete training process for the specified number of episodes.
     /// Implements temporal difference learning with eligibility traces and exploration decay.
     /// </summary>
-    public void Train()
+    public void Train(bool saveWeights = true)
     {
         var explorationRate = _config.InitialExplorationRate;
         var tclEpsilon = WeightType.CreateChecked(TCLEpsilon);
@@ -199,7 +199,7 @@ internal class TDTrainer<WeightType> where WeightType : unmanaged, IFloatingPoin
             RunEpisode(explorationRate);
             explorationRate -= _explorationRateDiff;
 
-            if ((episodeID + 1) % _config.SaveWeightsInterval == 0)
+            if (saveWeights && (episodeID + 1) % _config.SaveWeightsInterval == 0)
             {
                 PrintLabel();
 
@@ -218,6 +218,17 @@ internal class TDTrainer<WeightType> where WeightType : unmanaged, IFloatingPoin
         }
 
         _valueFunc.CopyWeightsBlackToWhite();
+
+        if (saveWeights)
+        {
+            PrintLabel();
+
+            _logger.WriteLine($"{_config.NumEpisodes} episodes have done.");
+            var suffix = _config.SaveOnlyLatestWeights ? string.Empty : $"final";
+            var path = string.Format(_weightsFilePath, suffix);
+            _valueFunc.SaveToFile(path);
+            _logger.WriteLine($"Weights were saved at \"{path}\"\n");
+        }
     }
 
     /// <summary>

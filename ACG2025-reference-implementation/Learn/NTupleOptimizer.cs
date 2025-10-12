@@ -237,8 +237,6 @@ internal class NTupleOptimizer<WeightType> where WeightType : unmanaged, IFloati
     {
         var valueFuncs = nTupleManagers.Select(nt => new ValueFunctionForTrain<WeightType>(nt)).ToArray();
 
-        TDTrainer<WeightType>.TrainMultipleAgents(_tdConfig, )
-
         for (var i = 0; i < valueFuncs.Length; i += NumThreads)
         {
             var numThreads = Math.Min(NumThreads, valueFuncs.Length - i);
