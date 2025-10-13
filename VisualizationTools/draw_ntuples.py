@@ -102,14 +102,13 @@ def main():
         axes = axes.flatten()
     
     for i, coords in enumerate(ntuples):
-        title = f"N-tuple {i+1} (size: {len(coords)})"
+        title = f"{len(coords)}-tuple {i+1}"
         draw_ntuple_grid(coords, axes[i], title)
     
     for i in range(k, len(axes)):
         axes[i].set_visible(False)
     
     plt.tight_layout()
-    plt.suptitle(f"N-Tuple Visualization ({k} n-tuples)", fontsize=14, y=0.98)
     
     plt.show()
 
