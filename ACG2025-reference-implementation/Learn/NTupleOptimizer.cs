@@ -201,7 +201,7 @@ internal class NTupleOptimizer<WeightType> where WeightType : unmanaged, IFloati
             var gaConfig = _gaConfig with
             {
                 PoolFileName = $"{_gaConfig.PoolFileName}_{id}_",
-                FitnessHistoryFileName = $"{_gaConfig.FitnessHistoryFileName}_{id}_"
+                FitnessHistoryFileName = $"{_gaConfig.FitnessHistoryFileName}_{id}"
             };
             var ga = new BRKGA<WeightType>(gaConfig, _nTupleSize, _numNTuples) { NumThreads = NumThreads };
 
