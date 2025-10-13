@@ -229,7 +229,7 @@ namespace ACG2025_reference_implementation
                     var coords = nTuple.GetCoordinates(0);
                     foreach (var coord in coords[..^1])
                         sw.Write($"{(int)coord}, ");
-                    sw.Write($"{coords[^1]}]\n");
+                    sw.Write($"{(int)coords[^1]}]\n");
                 }
             }
 
