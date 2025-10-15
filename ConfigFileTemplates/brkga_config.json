@@ -3,7 +3,7 @@
   "EliteRate": 0.2,
   "MutantRate": 0.2,
   "EliteInheritanceProb": 0.7,
-  "LearningRateForEval":0.01,
+  "LearningRateForEval":0.1,
   "NumEpochsForEval": 20,
   "PoolFileName": "pool",
   "FitnessHistoryFileName": "fitness_history"
