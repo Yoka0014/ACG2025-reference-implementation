@@ -248,14 +248,16 @@ internal class ValueFunction
         var valueFunc = new ValueFunction(srcVf.NTupleManager, srcVf.NumMovesPerPhase);
         for (var i = 0; i < valueFunc.Weights.Length; i++)
         {
-            var qw = int.CreateChecked(MathFunctions.Round(srcVf.Weights[i] * WeightType.CreateChecked(OutScale * FVScale)));
-            valueFunc.Weights[i] = (QWeightType)Math.Clamp(qw, QWeightType.MinValue, QWeightType.MaxValue);
+            var w = double.CreateChecked(srcVf.Weights[i]) * OutScale * FVScale;
+            var rw = MathFunctions.Round(w);
+            valueFunc.Weights[i] = (QWeightType)Math.Clamp(rw, QWeightType.MinValue, QWeightType.MaxValue);
         }
 
         for (var i = 0; i < valueFunc.Bias.Length; i++)
         {
-            var qb = int.CreateChecked(MathFunctions.Round(srcVf.Bias[i] * WeightType.CreateChecked(OutScale * FVScale)));
-            valueFunc.Bias[i] = (QWeightType)Math.Clamp(qb, QWeightType.MinValue, QWeightType.MaxValue);
+            var b = double.CreateChecked(srcVf.Bias[i]) * OutScale * FVScale;
+            var rb = MathFunctions.Round(b);
+            valueFunc.Bias[i] = (QWeightType)Math.Clamp(rb, QWeightType.MinValue, QWeightType.MaxValue);
         }
 
         return valueFunc;
