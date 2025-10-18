@@ -52,7 +52,7 @@ internal class MCTSEngine : Engine
         EvalScoreMax = 1.0;
 
         if (string.IsNullOrEmpty(logFilePath))
-            _logger = new StreamWriter(Stream.Null);
+            _logger = StreamWriter.Null;
         else
             _logger = new StreamWriter(logFilePath);
 
@@ -550,6 +550,12 @@ internal class MCTSEngine : Engine
         }
 
         _logger?.Dispose();
-        _logger = new StreamWriter(Options["thought_log_path"].CurrentValue);
+
+        var path = Options["thought_log_path"].CurrentValue;
+
+        if (!string.IsNullOrEmpty(path))
+            _logger = new StreamWriter(Options["thought_log_path"].CurrentValue);
+        else
+            _logger = StreamWriter.Null;
     }
 }
