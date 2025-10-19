@@ -9,15 +9,6 @@
 
 This project is a reference implementation of the method proposed in the paper "Mastering Othello with genetic algorithm and reinforcement learning". The implementation presents an efficient learning method for Othello that requires no domain knowledge beyond the game rules and board symmetries.
 
-The method combines genetic algorithm-based n-tuple optimization with self-play reinforcement learning to achieve strong gameplay performance. The key innovation is using a Biased Random-Key Genetic Algorithm (BRKGA) to optimize n-tuple structures while generating training data through self-play, eliminating the need for existing game records or domain-specific strategic knowledge.
-
-Specifically, it consists of the following two main phases:
-
-1.  **N-Tuple Structure Optimization**: Using BRKGA to evolve optimal n-tuple shapes and combinations for feature extraction. Each individual in the genetic algorithm represents a set of spatially connected n-tuples, and fitness is defined as the reciprocal of the cross-entropy loss between the value function predictions and observed outcomes on test data, after training the value function using TD(λ) learning with that individual's n-tuples.
-2.  **Self-Play Reinforcement Learning**: After obtaining optimized n-tuples, the method further refines the value function parameters through AlphaZero-style self-play using Monte Carlo Tree Search (MCTS), generating 500,000 games per training cycle.
-
-The method achieves remarkable efficiency, completing training in approximately 38 hours on consumer hardware while achieving winning performance against strong Othello programs like Edax Level 10.
-
 ### 2. Directory and File Structure
 
 The roles of the main directories and files in this project are as follows:
@@ -366,14 +357,8 @@ The following shows the structure of configuration files used by each tool and p
 
 ### 1. 概要
 
-本プロジェクトは、論文「Mastering Othello with genetic algorithm and reinforcement learning」で提案した手法のリファレンス実装です。本実装は、ゲームルールと盤面対称性以外のドメイン知識を必要としない、リバーシの効率的な学習手法を提示しています。
-
-本手法は、遺伝的アルゴリズムベースのn-tuple最適化と自己対局強化学習を組み合わせることで、強力な対局性能を実現します。主要な新規性は、Biased Random-Key Genetic Algorithm (BRKGA) を用いてn-tuple構造を最適化しながら、自己対局を通じて訓練データを生成することで、既存の棋譜やドメイン固有の戦略的知識への依存を排除したことです。
-
-具体的には、以下の2つの主要なフェーズから構成されています。
-
-1.  **n-tuple構造最適化**: BRKGAを用いて、特徴抽出のための最適なn-tupleの形状と組み合わせを進化させます。遺伝的アルゴリズムの各個体は空間的に連結されたn-tupleの集合を表し、適応度は各個体のn-tupleを用いてTD(λ)学習で価値関数を訓練した後、テストデータにおける価値関数の予測と実際の結果との間のクロスエントロピー損失の逆数として定義されます。
-2.  **自己対局強化学習**: 最適化されたn-tupleを取得後、モンテカルロ木探索（MCTS）を用いたAlphaZeroスタイルの自己対局により価値関数パラメータをさらに洗練し、訓練サイクルごとに50万ゲームを生成します。
+本プロジェクトは、論文「*Mastering Othello with genetic algorithm and reinforcement learning*」で提案された手法のリファレンス実装です。  
+ゲームルールと盤面対称性以外のドメイン知識に依存しない、効率的なリバーシ学習手法を実装しています。
 
 ### 2. ディレクトリ・ファイル構成
 
