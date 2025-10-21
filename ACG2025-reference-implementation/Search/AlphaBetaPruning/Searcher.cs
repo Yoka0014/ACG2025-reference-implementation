@@ -1084,7 +1084,7 @@ internal class Searcher(ValueFunction valueFunc, long ttSizeBytes)
         {
             Move move = moves[i];
             int tmpScore = scores[i];
-            if (scores[i - 1] > tmpScore)
+            if (scores[i - 1] < tmpScore)
             {
                 int j = i;
                 do
@@ -1092,7 +1092,7 @@ internal class Searcher(ValueFunction valueFunc, long ttSizeBytes)
                     moves[j] = moves[j - 1];
                     scores[j] = scores[j - 1];
                     --j;
-                } while (j > 0 && scores[j - 1] > tmpScore);
+                } while (j > 0 && scores[j - 1] < tmpScore);
 
                 moves[j] = move;
                 scores[j] = tmpScore;
