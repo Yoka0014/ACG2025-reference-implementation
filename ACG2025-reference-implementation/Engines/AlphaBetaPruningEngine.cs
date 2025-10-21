@@ -399,6 +399,7 @@ internal class AlphaBetaPruningEngine : Engine
             Depth = searchResult.Depth,
             NodeCount = searchResult.NodeCount,
             Nps = searchResult.NodeCount / (searchResult.ElapsedMs * 1.0e-3),
+            ElapsedMs = searchResult.ElapsedMs,
             EvalScore = SearchValueToWinRate(searchResult.SearchValue)
         };
     }

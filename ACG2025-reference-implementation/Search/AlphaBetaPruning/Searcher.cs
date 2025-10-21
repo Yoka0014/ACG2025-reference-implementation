@@ -492,12 +492,9 @@ internal class Searcher(ValueFunction valueFunc, long ttSizeBytes)
 
             return res;
         }
-        
-        int idMax = maxDepth;
-        if(idMax >= state.Position.EmptyCellCount)
-            idMax = Math.Max(0, state.Position.EmptyCellCount - MateSearchDepth);
 
-        depth = (maxDepth % 2 == 0) ? DepthMin : DepthMin + 1;
+        var idMax = (maxDepth == state.Position.EmptyCellCount) ? Math.Max(0, state.Position.EmptyCellCount - MateSearchDepth) : maxDepth;
+        depth = (idMax % 2 == 0) ? DepthMin : DepthMin + 1;
 
         var bestMove = BoardCoordinate.Null;
         int value = ValueInvalid;
