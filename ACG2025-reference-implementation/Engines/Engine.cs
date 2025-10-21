@@ -105,13 +105,13 @@ internal class EngineMove
     /// <param name="coord">Board coordinate of the move</param>
     /// <param name="evalScore">Evaluation score</param>
     /// <param name="evalScoreType">Type of evaluation score</param>
-    /// <param name="ellapsedMs">Time elapsed in milliseconds</param>
-    public EngineMove(BoardCoordinate coord, double? evalScore, EvalScoreType evalScoreType, int? ellapsedMs)
+    /// <param name="elapsedMs">Time elapsed in milliseconds</param>
+    public EngineMove(BoardCoordinate coord, double? evalScore, EvalScoreType evalScoreType, int? elapsedMs)
     {
         Coord = coord;
         EvalScore = evalScore;
         EvalScoreType = evalScoreType;
-        ElapsedMs = ellapsedMs;
+        ElapsedMs = elapsedMs;
     }
 }
 
