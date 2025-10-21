@@ -992,9 +992,8 @@ internal class Searcher(ValueFunction valueFunc, long ttSizeBytes)
 
         if (AggressivePVSave && maxValue >= alpha)
         {
-            ref TTEntry entry = ref _tt.GetEntry(ref state.Position, out var hit);
-            if (!hit)
-                _tt.SaveAt(ref entry, ref state.Position, bestMove, maxValue, maxValue, depth, nodeCount);
+            ref TTEntry entry = ref _tt.GetEntry(ref state.Position, out _);
+            _tt.SaveAt(ref entry, ref state.Position, bestMove, maxValue, maxValue, depth, nodeCount);
         }
 
         return maxValue;
