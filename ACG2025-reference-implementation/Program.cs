@@ -1,18 +1,13 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 
 using ACG2025_reference_implementation.Engines;
 using ACG2025_reference_implementation.Evaluation;
 using ACG2025_reference_implementation.Learn;
 using ACG2025_reference_implementation.Protocols;
-using ACG2025_reference_implementation.Reversi;
-using ACG2025_reference_implementation.Search.MCTS.Training;
 
 namespace ACG2025_reference_implementation
 {
