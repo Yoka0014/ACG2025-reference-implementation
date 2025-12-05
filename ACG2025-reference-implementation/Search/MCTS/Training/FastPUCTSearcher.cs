@@ -67,7 +67,8 @@ internal class FastPUCTSearcher(ValueFunction valueFunc, int numSimulations)
             for (var i = 0; i < _root.Edges.Length; i++)
             {
                 ref var edge = ref _root.Edges[i];
-                valueSum += edge.ExpectedReward;
+                if(edge.VisitCount != 0)
+                    valueSum += edge.ExpectedReward;
             }
 
             return valueSum / _root.NumChildren;
