@@ -61,13 +61,13 @@ internal class FastPUCTSearcher(ValueFunction valueFunc, int numSimulations)
                 return double.NaN;
 
             if (_rootEdgeLabel != EdgeLabel.NotProved)
-                return OutcomeToReward[(int)(_rootEdgeLabel ^ EdgeLabel.Proved)];
+                return 1.0 - OutcomeToReward[(int)(_rootEdgeLabel ^ EdgeLabel.Proved)];
 
             var valueSum = 0.0;
             for (var i = 0; i < _root.Edges.Length; i++)
             {
-                ref var edge = ref _root.Edges[i];
-                if(edge.VisitCount != 0)
+                ref var edge = ref _root.Edges[i]; 
+                if (edge.VisitCount != 0)
                     valueSum += edge.ExpectedReward;
             }
 
