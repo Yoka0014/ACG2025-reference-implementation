@@ -117,9 +117,9 @@ internal class MoveEval(IEnumerable<BoardCoordinate> pv) : IComparable<MoveEval>
         => res switch
         {
             GameResult.Win => 3,
-            GameResult.Draw => 2,
-            GameResult.Loss => 1,
-            GameResult.NotOver => 0,
+            GameResult.Draw => 1,
+            GameResult.Loss => 0,
+            GameResult.NotOver => 2,
             _ => throw new NotImplementedException()
         };
 
